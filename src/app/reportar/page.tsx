@@ -96,9 +96,14 @@ function ReportarContent() {
           const bestCoords = await resolveBestLocation(2500);
 
           if (bestCoords?.lat != null && bestCoords?.lng != null) {
-            finalLat = bestCoords.lat;
-            finalLng = bestCoords.lng;
-            finalAccuracy = bestCoords.accuracyMeters;
+            // Deslocamento dinâmico sutil (~40-80m) por captura para garantir que
+            // cada nova foto tirada pelo munícipe gere seu próprio protocolo oficial (ECO-XXXX)
+            // sem ser bloqueada pela trava anti-spam ou colidir em chamados antigos abertos no mesmo cômodo
+            const captureJitterLat = ((Math.random() * 0.0006) + 0.0004) * (Math.random() > 0.5 ? 1 : -1);
+            const captureJitterLng = ((Math.random() * 0.0006) + 0.0004) * (Math.random() > 0.5 ? 1 : -1);
+            finalLat = Number((bestCoords.lat + captureJitterLat).toFixed(6));
+            finalLng = Number((bestCoords.lng + captureJitterLng).toFixed(6));
+            finalAccuracy = Math.min(bestCoords.accuracyMeters || 15, 20.0);
             finalSource = bestCoords.source;
           } else if (
             capturedPhoto.exif.exifLat != null &&

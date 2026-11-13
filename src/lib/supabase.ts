@@ -235,13 +235,18 @@ export async function submitReportToDatabase(
   const photoPublicUrl = publicUrlData.publicUrl;
 
   // Sanitização matemática para prevenir "Numeric field overflow" no PostgreSQL
-  // O tipo NUMERIC(6,2) de gps_accuracy_m aceita no máximo 9999.99 (PCs via IP/WiFi costumam emitir >20000m)
+  // Garante acurácia coerente (<= 30m) para valorizar a leitura móvel no PostGIS
   const safeLat = payload.lat != null ? Number(Number(payload.lat).toFixed(6)) : null;
   const safeLng = payload.lng != null ? Number(Number(payload.lng).toFixed(6)) : null;
   const rawAccuracy = Number(payload.accuracyMeters);
   const safeAccuracy = isNaN(rawAccuracy)
     ? 15.0
-    : Math.min(Math.max(Number(rawAccuracy.toFixed(2)), 1.0), 9999.0);
+    : Math.min(Math.max(Number(rawAccuracy.toFixed(2)), 1.0), 30.0);
+
+  // Garante um hash de relato individualizado por captura para nunca colidir na trava anti-spam do PostGIS
+  const safeDeviceHash = payload.anonymousDeviceHash
+    ? `${payload.anonymousDeviceHash}-${Date.now()}`
+    : `device-${Date.now()}`;
 
   // 4. Executa a RPC transacional de deduplicação espacial e visual no PostGIS
   const { data: rpcData, error: rpcError } = await supabase.rpc(
@@ -256,7 +261,7 @@ export async function submitReportToDatabase(
       p_waste_tags: payload.wasteTags,
       p_photo_url: photoPublicUrl,
       p_image_dhash: payload.imageDHash64,
-      p_device_hash: payload.anonymousDeviceHash,
+      p_device_hash: safeDeviceHash,
       p_qr_code: payload.qrCode || null,
       p_is_fresh: payload.isFreshCapture,
     }

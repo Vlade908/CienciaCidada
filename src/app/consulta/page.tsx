@@ -88,7 +88,7 @@ function ConsultaContent() {
           .from('incident_clusters')
           .select('protocol_code, status, dominant_scale, address_reference, first_reported_at, sample_photo_url')
           .order('first_reported_at', { ascending: false })
-          .limit(8);
+          .limit(30);
 
         if (isMounted && data && data.length > 0) {
           const mapped: SeedCardPreview[] = data.map((c: any) => ({
