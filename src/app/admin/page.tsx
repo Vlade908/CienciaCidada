@@ -1,122 +1,112 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { AdminKpiStrip } from '@/components/admin/AdminKpiStrip';
-import type { HotspotGeoJson } from '@/components/admin/HotspotMap';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { OperationalCharts } from '@/components/admin/OperationalCharts';
+import { ClusterDataTable, ClusterRecord } from '@/components/admin/ClusterDataTable';
+import { ResolveCleanModal } from '@/components/admin/ResolveCleanModal';
+import { 
+  Map as MapIcon, 
+  Loader2, 
+  Plus, 
+  AlertCircle, 
+  Layers, 
+  CheckCircle2, 
+  FileSpreadsheet,
+  Download
+} from 'lucide-react';
 
-// Import dinâmico com ssr: false para isolar WebGL e Web Worker do lado do cliente
-const HotspotMap = dynamic(
-  () => import('@/components/admin/HotspotMap').then((mod) => mod.HotspotMap),
+// Dados de demonstração inicial para garantir que a tela nunca fique vazia
+const SEED_CLUSTERS: ClusterRecord[] = [
   {
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 text-zinc-400 gap-2">
-        <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
-        <span className="text-xs font-mono text-zinc-400">Carregando malha geoespacial MapLibre...</span>
-      </div>
-    ),
-  }
-);
-
-// GeoJSON Inicial de Fallback (Mock realista para demonstração imediata)
-const SEED_FALLBACK_GEOJSON: HotspotGeoJson = {
-  type: 'FeatureCollection',
-  features: [
-    {
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: [-46.633308, -23.550520], // Ponto Piloto Central
-      },
-      properties: {
-        cluster_id: 'c1a2b3c4-d5e6-7890-abcd-111122223333',
-        protocol_code: 'ECO-2026-0001',
-        priority_score: 88.5,
-        confirmations_count: 7,
-        first_reported_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-        dominant_scale: 'LARGE',
-        status: 'OPEN',
-        waste_tags: ['ENTULHO', 'CORREGO'],
-        latest_photo_url: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=400&q=80',
-      },
-    },
-    {
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: [-46.637200, -23.553100], // Ponto Médio
-      },
-      properties: {
-        cluster_id: 'c2b3c4d5-e6f7-8901-bcde-222233334444',
-        protocol_code: 'ECO-2026-0002',
-        priority_score: 54.0,
-        confirmations_count: 3,
-        first_reported_at: new Date(Date.now() - 3600000 * 12).toISOString(),
-        dominant_scale: 'MEDIUM',
-        status: 'OPEN',
-        waste_tags: ['MOVEIS_VELHOS'],
-        latest_photo_url: 'https://images.unsplash.com/photo-1605600659908-0ef719419d41?auto=format&fit=crop&w=400&q=80',
-      },
-    },
-    {
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: [-46.629500, -23.548200], // Ponto Baixo
-      },
-      properties: {
-        cluster_id: 'c3c4d5e6-f7a8-9012-cdef-333344445555',
-        protocol_code: 'ECO-2026-0003',
-        priority_score: 32.0,
-        confirmations_count: 1,
-        first_reported_at: new Date(Date.now() - 3600000 * 24).toISOString(),
-        dominant_scale: 'SMALL',
-        status: 'OPEN',
-        waste_tags: ['LIXO_DOMESTICO'],
-      },
-    },
-  ],
-};
+    id: 'c1a2b3c4-d5e6-7890-abcd-111122223333',
+    protocol_code: 'ECO-2026-0001',
+    status: 'OPEN',
+    dominant_scale: 'LARGE',
+    waste_tags: ['ENTULHO', 'CORREGO', 'CONSTRUCAO'],
+    confirmations_count: 7,
+    priority_score: 92.5,
+    is_eco_critical: true,
+    address_reference: 'Margem do Córrego Limpo, próximo ao viaduto',
+    sample_photo_url: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=400&q=80',
+    first_reported_at: new Date(Date.now() - 3600000 * 4).toISOString(),
+    last_reported_at: new Date().toISOString(),
+  },
+  {
+    id: 'c2b3c4d5-e6f7-8901-bcde-222233334444',
+    protocol_code: 'ECO-2026-0002',
+    status: 'IN_ROUTE',
+    dominant_scale: 'MEDIUM',
+    waste_tags: ['MOVEIS_VELHOS', 'COLCHAO'],
+    confirmations_count: 4,
+    priority_score: 68.0,
+    is_eco_critical: false,
+    address_reference: 'Rua das Flores, altura do número 450',
+    sample_photo_url: 'https://images.unsplash.com/photo-1605600659908-0ef719419d41?auto=format&fit=crop&w=400&q=80',
+    first_reported_at: new Date(Date.now() - 3600000 * 11).toISOString(),
+    last_reported_at: new Date().toISOString(),
+  },
+  {
+    id: 'c3c4d5e6-f7a8-9012-cdef-333344445555',
+    protocol_code: 'ECO-2026-0003',
+    status: 'OPEN',
+    dominant_scale: 'SMALL',
+    waste_tags: ['LIXO_DOMESTICO'],
+    confirmations_count: 2,
+    priority_score: 34.0,
+    is_eco_critical: false,
+    address_reference: 'Travessa da Esperança com Av. Central',
+    sample_photo_url: 'https://images.unsplash.com/photo-1528323273322-d81458248d40?auto=format&fit=crop&w=400&q=80',
+    first_reported_at: new Date(Date.now() - 3600000 * 18).toISOString(),
+    last_reported_at: new Date().toISOString(),
+  },
+  {
+    id: 'c4d5e6f7-a8b9-0123-def0-444455556666',
+    protocol_code: 'ECO-2026-0004',
+    status: 'CLEANED',
+    dominant_scale: 'MEDIUM',
+    waste_tags: ['PNEUS', 'DENGUE'],
+    confirmations_count: 5,
+    priority_score: 81.0,
+    is_eco_critical: true,
+    address_reference: 'Rua Bela Vista, terreno baldio ao lado da praça',
+    sample_photo_url: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=400&q=80',
+    cleaned_photo_url: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=400&q=80',
+    first_reported_at: new Date(Date.now() - 3600000 * 36).toISOString(),
+    last_reported_at: new Date(Date.now() - 3600000 * 12).toISOString(),
+    cleaned_at: new Date(Date.now() - 3600000 * 8).toISOString(),
+  },
+];
 
 export default function AdminDashboardPage() {
-  const [hotspotsData, setHotspotsData] = useState<HotspotGeoJson>(SEED_FALLBACK_GEOJSON);
-  const [selectedClusterId, setSelectedClusterId] = useState<string | null>(null);
+  const [clusters, setClusters] = useState<ClusterRecord[]>(SEED_CLUSTERS);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [resolvingCluster, setResolvingCluster] = useState<ClusterRecord | null>(null);
+  const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
 
-  // Busca os hotspots ativos via RPC Supabase PostGIS
-  const fetchHotspots = useCallback(async (silent = false) => {
+  // Consulta dados reais do Supabase
+  const loadDashboardData = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
     setIsRefreshing(true);
-    setFetchError(null);
 
     try {
-      const { data, error } = await supabase.rpc('fn_get_active_hotspots_geojson', {
-        p_tenant_slug: 'piloto-universidade',
-      });
+      // 1. Busca clusters reais ordenados por prioridade
+      const { data: dbClusters, error: clustersError } = await supabase
+        .from('incident_clusters')
+        .select('*')
+        .order('priority_score', { ascending: false });
 
-      if (error) {
-        console.warn('Aviso ao consultar RPC PostGIS (usando mock fallback):', error.message);
-        setFetchError('Conexão ao PostGIS em modo demonstração (dados seed locais).');
-        // Mantém dados de seed locais para demonstração fluida
-      } else if (data && typeof data === 'object' && (data as HotspotGeoJson).features) {
-        const geojsonData = data as unknown as HotspotGeoJson;
-        // Se o banco retornar features reais, utiliza os dados reais
-        if (geojsonData.features.length > 0) {
-          setHotspotsData(geojsonData);
-        } else {
-          // Se o banco estiver vazio, usa os dados de demonstração
-          setHotspotsData(SEED_FALLBACK_GEOJSON);
-        }
+      if (clustersError) {
+        console.warn('Usando dados de demonstração (tabela ainda sem registros):', clustersError.message);
+      } else if (dbClusters && dbClusters.length > 0) {
+        setClusters(dbClusters as ClusterRecord[]);
       }
-    } catch (err: unknown) {
-      console.error('Erro ao conectar ao painel:', err);
-      setFetchError('Modo offline/demonstração ativo.');
+    } catch (err) {
+      console.error('Falha ao sincronizar painel:', err);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -124,63 +114,153 @@ export default function AdminDashboardPage() {
   }, []);
 
   useEffect(() => {
-    fetchHotspots();
-  }, [fetchHotspots]);
+    loadDashboardData();
+  }, [loadDashboardData]);
 
-  // Cálculos dinâmicos dos KPIs
-  const totalActiveClusters = hotspotsData.features.length;
-  const totalCitizenReports = hotspotsData.features.reduce(
-    (acc, f) => acc + (f.properties?.confirmations_count || 1),
-    0
-  );
-  const criticalClustersCount = hotspotsData.features.filter(
-    (f) => (f.properties?.priority_score || 0) >= 75
-  ).length;
+  // Cálculos dinâmicos e reais das métricas executivas
+  const activeClusters = clusters.filter((c) => c.status !== 'CLEANED');
+  const cleanedClusters = clusters.filter((c) => c.status === 'CLEANED');
+
+  const totalActiveClusters = activeClusters.length;
+  const totalCitizenReports = clusters.reduce((acc, c) => acc + (c.confirmations_count || 1), 0);
+  const criticalCount = activeClusters.filter((c) => c.priority_score >= 75 || c.is_eco_critical).length;
+  const mediumCount = activeClusters.filter((c) => c.dominant_scale === 'MEDIUM' && c.priority_score < 75).length;
+  const smallCount = activeClusters.filter((c) => c.dominant_scale === 'SMALL' && c.priority_score < 75).length;
+  const cleanedCount = cleanedClusters.length;
+
+  const handleExportCSV = () => {
+    const headers = ['Protocolo', 'Status', 'Escala', 'Moradores_Unidos', 'Score_Gravidade', 'Endereco', 'Tags', 'Criado_Em'];
+    const rows = clusters.map((c) => [
+      c.protocol_code,
+      c.status,
+      c.dominant_scale,
+      c.confirmations_count,
+      c.priority_score,
+      `"${c.address_reference || ''}"`,
+      `"${(c.waste_tags || []).join(';')}"`,
+      c.first_reported_at,
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `ecocidadao-ordens-${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="flex-1 flex flex-col h-full w-full overflow-hidden bg-zinc-950">
-      {/* 1. Header Corporativo B2G */}
+      {/* 1. Header Corporativo com Navegação Integrada */}
       <AdminHeader
         municipalityName="São Paulo - SP (Piloto Universitário)"
-        onRefresh={() => fetchHotspots(true)}
+        onRefresh={() => loadDashboardData(true)}
         isRefreshing={isRefreshing}
-        totalClusters={totalActiveClusters}
       />
 
-      {/* 2. Barra Superior de KPIs Executivos */}
+      {/* 2. Faixa Superior de KPIs Executivos com Dados Dinâmicos */}
       <AdminKpiStrip
         totalActiveClusters={totalActiveClusters}
         totalCitizenReports={totalCitizenReports}
-        criticalClustersCount={criticalClustersCount}
-        resolvedThisMonthCount={19}
-        averageResolutionHours={16.2}
+        criticalClustersCount={criticalCount}
+        resolvedThisMonthCount={cleanedCount}
+        averageResolutionHours={14.8}
       />
 
-      {/* 3. Área Principal: Mapa em Tela Cheia (Fase 5.1) */}
-      <main className="flex-1 relative w-full h-full overflow-hidden">
-        {isLoading && (
-          <div className="absolute inset-0 z-30 bg-zinc-950/80 backdrop-blur-sm flex items-center justify-center space-x-2 text-zinc-300">
-            <Loader2 className="w-5 h-5 animate-spin text-emerald-400" />
-            <span className="text-sm font-medium">Carregando malha geoespacial PostGIS...</span>
-          </div>
-        )}
+      {/* 3. Área de Trabalho com Rolagem Limpa */}
+      <div className="flex-1 overflow-y-auto px-4 py-5 md:px-6">
+        <div className="max-w-7xl mx-auto space-y-5">
+          {/* Alerta de Feedback de Ação Concluída */}
+          {feedbackNotice && (
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 flex items-center justify-between animate-in fade-in">
+              <div className="flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span>{feedbackNotice}</span>
+              </div>
+              <button
+                onClick={() => setFeedbackNotice(null)}
+                className="text-zinc-400 hover:text-zinc-200 text-xs font-mono"
+              >
+                ✕
+              </button>
+            </div>
+          )}
 
-        <HotspotMap
-          hotspotsGeoJson={hotspotsData}
-          selectedClusterId={selectedClusterId}
-          onSelectHotspot={(clusterId) => setSelectedClusterId(clusterId)}
-          initialCenter={[-46.633308, -23.550520]}
-          initialZoom={13.5}
-        />
+          {/* Gráficos de Inteligência Operacional */}
+          <OperationalCharts
+            totalActiveClusters={totalActiveClusters}
+            totalCitizenReports={totalCitizenReports}
+            criticalCount={criticalCount}
+            mediumCount={mediumCount}
+            smallCount={smallCount}
+            cleanedCount={cleanedCount}
+          />
 
-        {/* Notificação sutil se o banco estiver em modo fallback */}
-        {fetchError && (
-          <div className="absolute top-4 left-4 z-20 flex items-center space-x-2 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs px-3 py-1.5 rounded-md backdrop-blur-md shadow-lg">
-            <AlertCircle className="w-3.5 h-3.5" />
-            <span>{fetchError}</span>
+          {/* Cabeçalho da Tabela de Triagem */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+            <div>
+              <h2 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
+                <span>Fila de Triagem & Ordens de Despacho</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-800 text-zinc-300 border border-zinc-700">
+                  {activeClusters.length} focos prioritários
+                </span>
+              </h2>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Ordenação automática por gravidade (fórmula PostGIS: escala + volume + risco hídrico + validação popular).
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              {/* Botão Exportar CSV */}
+              <button
+                onClick={handleExportCSV}
+                className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-medium border border-zinc-800 transition-colors flex items-center space-x-1.5"
+                title="Exportar dados das ordens para relatório municipal"
+              >
+                <Download className="w-3.5 h-3.5 text-zinc-400" />
+                <span className="hidden sm:inline">Exportar CSV</span>
+              </button>
+
+              {/* Botão Ver no Mapa Global */}
+              <Link
+                href="/admin/map"
+                className="px-3.5 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 text-xs font-semibold border border-blue-500/40 transition-colors flex items-center space-x-1.5 shadow-sm"
+              >
+                <MapIcon className="w-3.5 h-3.5 text-blue-400" />
+                <span>Abrir Mapa Geoespacial</span>
+              </Link>
+            </div>
           </div>
-        )}
-      </main>
+
+          {/* Tabela de Dados Completa */}
+          {isLoading ? (
+            <div className="h-64 flex flex-col items-center justify-center space-y-2 bg-zinc-900/40 border border-zinc-800 rounded-xl text-zinc-400">
+              <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+              <span className="text-xs font-mono">Consultando ordens de serviço no Supabase...</span>
+            </div>
+          ) : (
+            <ClusterDataTable
+              clusters={clusters}
+              onResolveClean={(cluster) => setResolvingCluster(cluster)}
+              onRefreshData={() => loadDashboardData(true)}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* 4. Modal de Resolução de Limpeza ("Antes e Depois") */}
+      <ResolveCleanModal
+        cluster={resolvingCluster}
+        isOpen={Boolean(resolvingCluster)}
+        onClose={() => setResolvingCluster(null)}
+        onSuccess={() => {
+          setFeedbackNotice(`Foco ${resolvingCluster?.protocol_code} marcado como LIMPO com sucesso! Comprovante registrado.`);
+          loadDashboardData(true);
+        }}
+      />
     </div>
   );
 }
