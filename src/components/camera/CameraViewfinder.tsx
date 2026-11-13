@@ -13,7 +13,9 @@ import {
   Search,
 } from "lucide-react";
 import { GpsStatusPill } from "@/components/camera/GpsStatusPill";
+import { QrAnchorBanner } from "@/components/camera/QrAnchorBanner";
 import type { GpsState } from "@/hooks/useHighAccuracyGps";
+import type { QrAnchorData } from "@/lib/qrAnchors";
 import {
   useEdgeImageProcessor,
   type EdgeProcessedPhoto,
@@ -23,6 +25,7 @@ export interface CameraViewfinderProps {
   gpsState: GpsState;
   accuracyMeters: number | null;
   qrCodeLabel?: string | null;
+  qrAnchor?: QrAnchorData | null;
   convergenceProgress?: number;
   onRetryGps?: () => void;
   onPhotoProcessed: (photo: EdgeProcessedPhoto) => void;
@@ -32,6 +35,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
   gpsState,
   accuracyMeters,
   qrCodeLabel = null,
+  qrAnchor = null,
   convergenceProgress = 25,
   onRetryGps,
   onPhotoProcessed,
@@ -229,7 +233,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
           <GpsStatusPill
             state={gpsState}
             accuracyMeters={accuracyMeters}
-            qrCodeLabel={qrCodeLabel}
+            qrCodeLabel={qrAnchor?.code || qrCodeLabel}
             convergenceProgress={convergenceProgress}
             onRetry={onRetryGps}
           />
@@ -248,6 +252,13 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
           <ShieldCheck className="size-3.5 text-emerald-400" aria-hidden="true" />
           <span>100% Anônimo · EXIF pessoal removido no celular</span>
         </div>
+
+        {/* BANNER FLUTUANTE DE ÂNCORA QR CODE */}
+        {qrAnchor && (
+          <div className="w-full pt-1">
+            <QrAnchorBanner anchor={qrAnchor} />
+          </div>
+        )}
       </header>
 
       {/* CENTRO: GUIA ÓPTICO */}

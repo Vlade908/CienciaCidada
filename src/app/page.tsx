@@ -1,27 +1,41 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { CameraViewfinder } from "@/components/camera/CameraViewfinder";
 import { ScaleBottomSheet, type WasteScale } from "@/components/camera/ScaleBottomSheet";
 import { CleanAlertCard } from "@/components/camera/CleanAlertCard";
 import { useHighAccuracyGps } from "@/hooks/useHighAccuracyGps";
 import type { EdgeProcessedPhoto } from "@/hooks/useEdgeImageProcessor";
 import { submitReportToDatabase, type SubmitReportResult } from "@/lib/supabase";
+import { getQrAnchorByCode } from "@/lib/qrAnchors";
+import { Loader2 } from "lucide-react";
 
 // Coordenadas de contingência do Projeto Piloto Universitário (São Paulo - Marco Zero / Piloto)
 // Usadas apenas se o usuário negar o GPS no navegador e a foto não tiver EXIF de GPS
 const PILOTO_FALLBACK_LAT = -23.55052;
 const PILOTO_FALLBACK_LNG = -46.633308;
 
-export default function EcoCidadaoPage() {
-  // GPS em background (Cold Start não-bloqueante)
+function EcoCidadaoContent() {
+  const searchParams = useSearchParams();
+  const qrParam = searchParams.get("qr");
+
+  // Localiza a âncora oficial caso a URL tenha sido aberta via placa física (?qr=QR-CORREGO-01)
+  const activeQrAnchor = useMemo(() => {
+    return getQrAnchorByCode(qrParam);
+  }, [qrParam]);
+
+  // GPS em background (Se houver âncora QR física, entra em QR_ANCHORED travando as coordenadas em ±5m)
   const {
     state: gpsState,
     accuracyMeters,
     convergenceProgress,
     resolveBestLocation,
     retryCalibration,
-  } = useHighAccuracyGps({ targetAccuracyMeters: 20 });
+  } = useHighAccuracyGps({
+    targetAccuracyMeters: 20,
+    qrAnchor: activeQrAnchor,
+  });
 
   // Dispositivo anônimo persistido (LGPD: sem CPF/email, apenas hash aleatório para proteção anti-sybil)
   const [deviceHash, setDeviceHash] = useState("anonymous-device");
@@ -62,35 +76,39 @@ export default function EcoCidadaoPage() {
       setErrorMessage(null);
 
       try {
-        // Micro-janela para aguardar convergência do GPS ativo
-        const bestCoords = await resolveBestLocation(1500);
-
-        // Hierarquia de localização:
-        // 1. GPS do celular (se ativo e com permissão concedida)
-        // 2. EXIF da foto (se a câmera tiver embutido a tag GPS)
-        // 3. Fallback de contingência do Piloto Universitário (garante que o envio nunca quebre)
         let finalLat: number = PILOTO_FALLBACK_LAT;
         let finalLng: number = PILOTO_FALLBACK_LNG;
         let finalAccuracy: number = 25;
         let finalSource = "BROWSER_GPS";
 
-        if (bestCoords?.lat != null && bestCoords?.lng != null) {
-          finalLat = bestCoords.lat;
-          finalLng = bestCoords.lng;
-          finalAccuracy = bestCoords.accuracyMeters;
-          finalSource = bestCoords.source;
-        } else if (
-          capturedPhoto.exif.exifLat != null &&
-          capturedPhoto.exif.exifLng != null
-        ) {
-          finalLat = capturedPhoto.exif.exifLat;
-          finalLng = capturedPhoto.exif.exifLng;
-          finalAccuracy = 20;
-          finalSource = "EXIF_GPS";
-        } else {
-          // Fallback seguro em área de demonstração/piloto
-          finalAccuracy = 50;
+        // Prioridade 1: Âncora física de QR Code (Coordenadas oficiais da placa da prefeitura)
+        if (activeQrAnchor) {
+          finalLat = activeQrAnchor.lat;
+          finalLng = activeQrAnchor.lng;
+          finalAccuracy = 5.0;
           finalSource = "QR_ANCHOR";
+        } else {
+          // Prioridade 2: Micro-janela para aguardar convergência do GPS ativo
+          const bestCoords = await resolveBestLocation(1500);
+
+          if (bestCoords?.lat != null && bestCoords?.lng != null) {
+            finalLat = bestCoords.lat;
+            finalLng = bestCoords.lng;
+            finalAccuracy = bestCoords.accuracyMeters;
+            finalSource = bestCoords.source;
+          } else if (
+            capturedPhoto.exif.exifLat != null &&
+            capturedPhoto.exif.exifLng != null
+          ) {
+            finalLat = capturedPhoto.exif.exifLat;
+            finalLng = capturedPhoto.exif.exifLng;
+            finalAccuracy = 20;
+            finalSource = "EXIF_GPS";
+          } else {
+            // Fallback seguro em área de demonstração/piloto
+            finalAccuracy = 50;
+            finalSource = "QR_ANCHOR";
+          }
         }
 
         // Disparo real para o Supabase: Upload WebP + RPC PostGIS
@@ -105,7 +123,7 @@ export default function EcoCidadaoPage() {
             wasteTags: tags,
             imageDHash64: capturedPhoto.dHash64,
             anonymousDeviceHash: deviceHash,
-            qrCode: finalSource === "QR_ANCHOR" ? "QR-CORREGO-01" : null,
+            qrCode: activeQrAnchor ? activeQrAnchor.code : (finalSource === "QR_ANCHOR" ? "QR-CORREGO-01" : null),
             isFreshCapture: capturedPhoto.exif.isFreshCapture,
           },
           capturedPhoto.webpBlob
@@ -123,7 +141,7 @@ export default function EcoCidadaoPage() {
         setIsSubmitting(false);
       }
     },
-    [capturedPhoto, deviceHash, resolveBestLocation]
+    [capturedPhoto, deviceHash, activeQrAnchor, resolveBestLocation]
   );
 
   // TOQUE 3: Subscrição Web Push VAPID ("Me avise quando limparem")
@@ -153,6 +171,8 @@ export default function EcoCidadaoPage() {
         protocolCode={submissionResult.protocol_code}
         confirmationsCount={submissionResult.confirmations_count}
         dominantScale={submissionResult.status}
+        addressReference={activeQrAnchor?.addressHint || "Área pública monitorada"}
+        isEcoCritical={activeQrAnchor?.isEcoCritical || false}
         onSubscribePush={handleSubscribePush}
         onNewReport={handleReset}
       />
@@ -165,6 +185,8 @@ export default function EcoCidadaoPage() {
       <CameraViewfinder
         gpsState={gpsState}
         accuracyMeters={accuracyMeters}
+        qrAnchor={activeQrAnchor}
+        qrCodeLabel={activeQrAnchor?.code}
         convergenceProgress={convergenceProgress}
         onRetryGps={retryCalibration}
         onPhotoProcessed={handlePhotoProcessed}
@@ -185,7 +207,9 @@ export default function EcoCidadaoPage() {
             Enviando foto e unificando relato...
           </p>
           <p className="text-xs text-zinc-400 mt-1">
-            Algoritmo espacial PostGIS calculando deduplicação em 25m
+            {activeQrAnchor
+              ? `Placa ${activeQrAnchor.code} vinculada ao ponto crítico`
+              : "Algoritmo espacial PostGIS calculando deduplicação em 25m"}
           </p>
         </div>
       )}
@@ -204,5 +228,19 @@ export default function EcoCidadaoPage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function EcoCidadaoPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-dvh w-full flex items-center justify-center bg-black text-white">
+          <Loader2 className="size-8 animate-spin text-emerald-400" />
+        </div>
+      }
+    >
+      <EcoCidadaoContent />
+    </Suspense>
   );
 }
