@@ -5,12 +5,20 @@ import Link from "next/link";
 import {
   Bell,
   CheckCircle2,
+  Check,
+  Copy,
   Users,
   MapPin,
   ArrowRight,
   ShieldCheck,
   Share2,
   Search,
+  Sparkles,
+  Camera,
+  Layers,
+  AlertTriangle,
+  X,
+  FileText,
 } from "lucide-react";
 
 export interface CleanAlertCardProps {
@@ -26,12 +34,17 @@ export interface CleanAlertCardProps {
 }
 
 /**
- * Componente de Confirmação & Alerta Assíncrono (Toque 3 de 3)
- * Aplicando `impeccable`:
- * - Prova Social marcante ("Já somos X vizinhos relatando este ponto");
- * - Único CTA primário na Thumb Zone ("🔔 Me avise quando limparem");
- * - Loop fechado de Ciência Cidadã sem pedir CPF, e-mail ou dados pessoais;
- * - Micro-interação de sucesso com feedback de permissão nativa Web Push.
+ * CleanAlertCard — View Oficial de Protocolo Gerado (Stitch Design)
+ * Exibido após o munícipe registrar um descarte irregular com sucesso.
+ * 
+ * Atributos-chave do design Stitch:
+ * - Emblema hero com anéis concêntricos pulsantes e glow esmeralda
+ * - Pill interativo com cópia rápida do código do protocolo (#ECO-...)
+ * - Card de Stewardship com miniatura da foto capturada e Prova Social ("Pioneiro na Região" ou "X Vizinhos Unificados")
+ * - Chips de atributos (área pública monitorada / ambientalmente crítica, estimativa de porte)
+ * - Snapshot de geolocalização validada
+ * - Selo LGPD de zero cadastro
+ * - Thumb Zone ergonômica com CTA primário Web Push VAPID, link de acompanhamento e novo relato
  */
 export const CleanAlertCard: React.FC<CleanAlertCardProps> = ({
   protocolCode,
@@ -46,9 +59,10 @@ export const CleanAlertCard: React.FC<CleanAlertCardProps> = ({
 }) => {
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
 
-  // Grava o protocolo gerado no histórico local do cidadão (1 toque)
+  // Grava o protocolo gerado no histórico local do cidadão (LGPD / localStorage)
   useEffect(() => {
     if (typeof window !== "undefined" && protocolCode) {
       try {
@@ -63,6 +77,21 @@ export const CleanAlertCard: React.FC<CleanAlertCardProps> = ({
       }
     }
   }, [protocolCode]);
+
+  const handleCopyProtocol = async () => {
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(protocolCode);
+        setCopied(true);
+        if ("vibrate" in navigator) {
+          navigator.vibrate([30]);
+        }
+        setTimeout(() => setCopied(false), 2200);
+      }
+    } catch (err) {
+      console.warn("Falha ao copiar protocolo:", err);
+    }
+  };
 
   const handlePushClick = async () => {
     setIsSubscribing(true);
@@ -84,147 +113,255 @@ export const CleanAlertCard: React.FC<CleanAlertCardProps> = ({
       try {
         await navigator.share({
           title: `EcoCidadão - Protocolo ${protocolCode}`,
-          text: `Ajudei a mapear um ponto de descarte irregular no bairro. Já somos ${confirmationsCount} moradores acompanhando a limpeza!`,
-          url: window.location.href,
+          text: `Ajudei a mapear um ponto de descarte irregular em São Paulo. Protocolo #${protocolCode}. Já somos ${confirmationsCount} moradores acompanhando a zeladoria!`,
+          url: `${window.location.origin}/consulta?protocolo=${protocolCode}`,
         });
         setShared(true);
+        setTimeout(() => setShared(false), 2500);
       } catch {
-        // Usuário cancelou compartilhamento
+        // Usuário cancelou compartilhamento nativo
+      }
+    } else {
+      // Fallback: copia o link para a área de transferência
+      try {
+        await navigator.clipboard.writeText(
+          `${window.location.origin}/consulta?protocolo=${protocolCode}`
+        );
+        setShared(true);
+        setTimeout(() => setShared(false), 2500);
+      } catch {
+        // Fallback silencioso
       }
     }
   };
 
+  // Formatação humanizada do porte
+  const formattedScale = (() => {
+    const scaleUpper = dominantScale?.toUpperCase();
+    if (scaleUpper === "PEQUENO" || scaleUpper === "SMALL") return "Porte: Pequeno (~0.5m³)";
+    if (scaleUpper === "MEDIO" || scaleUpper === "MEDIUM") return "Porte: Médio (~1m³)";
+    if (scaleUpper === "GRANDE" || scaleUpper === "LARGE") return "Porte: Grande (>2m³)";
+    return `Porte: ${dominantScale || "Médio (~1m³)"}`;
+  })();
+
+  const isFirstReporter = confirmationsCount <= 1;
+
   return (
-    <main
-      aria-label="Confirmação de registro do descarte irregular"
-      className="relative flex min-h-dvh w-full flex-col justify-between bg-zinc-950 p-6 pt-[max(2rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))] text-zinc-100 select-none"
-    >
-      {/* CARD PRINCIPAL DE SUCESSO */}
-      <div className="mx-auto flex w-full max-w-sm flex-col items-center text-center">
-        {/* Ícone Hero com pulso sutil */}
-        <div className="relative mb-5 flex size-20 items-center justify-center rounded-3xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
-          <CheckCircle2 className="size-10 stroke-[2.2]" aria-hidden="true" />
-        </div>
+    <div className="relative min-h-dvh w-full flex flex-col justify-between bg-zinc-950 text-zinc-100 select-none overflow-x-hidden">
+      {/* HEADER FIXO SUPERIOR DO STITCH */}
+      <header className="fixed top-0 inset-x-0 z-50 pt-[env(safe-area-inset-top,0px)] bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-800/40">
+        <div className="h-14 px-4 flex items-center justify-between max-w-md mx-auto w-full">
+          {/* Botão Fechar/Início */}
+          <button
+            type="button"
+            onClick={onViewMap || onNewReport}
+            className="size-10 rounded-full flex items-center justify-center bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800 active:scale-95 transition-all border border-zinc-800/60"
+            aria-label="Voltar para a página inicial"
+            title="Voltar ao início"
+          >
+            <X className="size-5" />
+          </button>
 
-        <span className="mb-1 rounded-full bg-emerald-400/15 px-3 py-1 font-mono text-xs font-semibold text-emerald-300">
-          Protocolo #{protocolCode}
-        </span>
-
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
-          Descarte Registrado!
-        </h1>
-
-        <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-          Os dados geoespaciais foram unificados e encaminhados para a equipe de zeladoria pública.
-        </p>
-
-        {/* BOX DE PROVA SOCIAL & IMPACTO DO CLUSTER */}
-        <div className="mt-6 w-full rounded-2xl border border-white/10 bg-zinc-900/70 p-4.5 text-left backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-400/20 text-emerald-300">
-              <Users className="size-5" aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white">
-                {confirmationsCount > 1
-                  ? `${confirmationsCount} moradores uniram forças!`
-                  : "Você é o primeiro a relatar este ponto!"}
-              </p>
-              <p className="text-xs text-zinc-400">
-                {confirmationsCount > 1
-                  ? "Chamados repetidos foram eliminados. Prioridade de limpeza elevada!"
-                  : "Novas fotos da vizinhança serão somadas automaticamente sem duplicar chamados."}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-3.5 flex flex-wrap items-center gap-2 pt-3 border-t border-white/10 text-[11px] text-zinc-300">
-            <div className="flex items-center gap-1.5">
-              <MapPin className="size-3 text-zinc-400" />
-              <span className="truncate max-w-[200px]">{addressReference}</span>
-            </div>
-            {isEcoCritical && (
-              <span className="rounded-md bg-amber-400/20 px-2 py-0.5 font-medium text-amber-300">
-                ⚠️ Área Crítica / Córrego
-              </span>
-            )}
-            <span className="rounded-md bg-white/10 px-2 py-0.5 font-medium text-zinc-300">
-              Porte: {dominantScale}
+          {/* Badge Central com pulso */}
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+            <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-xs font-semibold text-emerald-400 tracking-wide">
+              Chamado Registrado
             </span>
           </div>
-        </div>
 
-        {/* Selo LGPD */}
-        <div className="mt-4 flex items-center gap-1.5 text-[11px] text-zinc-400">
-          <ShieldCheck className="size-3.5 text-emerald-400" />
-          <span>Zero cadastro · Seus dados pessoais não foram coletados</span>
+          {/* Botão Compartilhar */}
+          <button
+            type="button"
+            onClick={handleShare}
+            className="size-10 rounded-full flex items-center justify-center bg-zinc-900/90 text-zinc-300 hover:text-white hover:bg-zinc-800 active:scale-95 transition-all border border-zinc-800/60"
+            aria-label="Compartilhar protocolo"
+            title="Compartilhar protocolo"
+          >
+            <Share2 className="size-4" />
+          </button>
         </div>
-      </div>
+      </header>
 
-      {/* AÇÕES NA THUMB ZONE (TOQUE 3) */}
-      <footer className="mx-auto flex w-full max-w-sm flex-col gap-3">
-        {/* BOTÃO PRIMÁRIO (TOQUE 3): ALERTA PUSH ASSÍNCRONO */}
+      {/* CONTEÚDO PRINCIPAL COM RESPIRO E GLOWS AMBIENTAIS */}
+      <main className="flex-1 flex flex-col items-center w-full max-w-md mx-auto px-4 pt-20 pb-4 relative z-10">
+        {/* Glows Difusos do Stitch */}
+        <div className="absolute -top-16 left-1/2 -translate-x-1/2 size-72 rounded-full bg-emerald-500/15 blur-[90px] pointer-events-none" />
+        <div className="absolute top-1/3 -right-16 size-60 rounded-full bg-teal-500/10 blur-[80px] pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col items-center w-full">
+          {/* EMBLEMA HERO COM ANÉIS CONCÊNTRICOS BRILHANTES */}
+          <div className="relative flex items-center justify-center mt-2">
+            <div className="absolute size-24 rounded-full bg-emerald-500/20 blur-xl animate-pulse" />
+            <div className="size-20 rounded-full bg-emerald-500/10 border-2 border-emerald-500/25 flex items-center justify-center p-1.5 shadow-sm">
+              <div className="size-full rounded-full bg-emerald-500 flex items-center justify-center shadow-[0_10px_25px_rgba(16,185,129,0.35)] text-emerald-950">
+                <Check className="size-9 stroke-[3]" />
+              </div>
+            </div>
+          </div>
+
+          {/* PILL INTERATIVO DE PROTOCOLO COM COPIAR */}
+          <button
+            type="button"
+            onClick={handleCopyProtocol}
+            className="mt-3.5 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900/90 border border-zinc-800 text-zinc-200 hover:bg-zinc-800 hover:border-zinc-700 active:scale-95 transition-all duration-150 shadow-sm group"
+            title="Clique para copiar o protocolo"
+          >
+            <FileText className="size-3.5 text-emerald-400" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+              Protocolo
+            </span>
+            <span className="font-mono font-bold text-xs sm:text-sm text-white tracking-wide">
+              #{protocolCode}
+            </span>
+            {copied ? (
+              <span className="text-[11px] font-bold text-emerald-300 bg-emerald-500/20 px-1.5 py-0.5 rounded">
+                Copiado!
+              </span>
+            ) : (
+              <Copy className="size-3.5 text-zinc-400 group-hover:text-emerald-400 transition-colors" />
+            )}
+          </button>
+
+          {/* TÍTULO E SUBTÍTULO */}
+          <h1 className="mt-3.5 text-2xl font-bold tracking-tight text-white text-center font-sans">
+            Descarte Registrado!
+          </h1>
+          <p className="mt-1 text-center text-xs sm:text-sm text-zinc-400 max-w-[310px] leading-relaxed">
+            Sua contribuição já está na fila prioritária de triagem da equipe regional de limpeza.
+          </p>
+
+          {/* CARD DE EVIDÊNCIA & STEWARDSHIP DO STITCH */}
+          <div className="w-full mt-4.5 rounded-2xl bg-zinc-900/80 border border-zinc-800/90 p-3.5 shadow-xl backdrop-blur-md space-y-3">
+            {/* Reconhecimento Comunitário & Miniatura da Evidência */}
+            <div className="flex items-center gap-3 bg-emerald-950/40 border border-emerald-500/20 rounded-xl p-2.5">
+              <div className="relative size-14 rounded-lg overflow-hidden shrink-0 border border-zinc-800 shadow-inner bg-zinc-800/90 flex items-center justify-center">
+                {samplePhotoUrl ? (
+                  <img
+                    src={samplePhotoUrl}
+                    alt="Evidência fotográfica do descarte irregular"
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  <Camera className="size-6 text-emerald-400" />
+                )}
+                <div className="absolute bottom-0 right-0 bg-zinc-950/80 backdrop-blur-xs rounded-tl px-1 py-0.5">
+                  <Camera className="size-2.5 text-emerald-400" />
+                </div>
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="inline-flex items-center gap-1.5 text-emerald-400 font-bold text-xs sm:text-sm">
+                  {isFirstReporter ? (
+                    <>
+                      <Sparkles className="size-3.5 text-emerald-400" />
+                      <span>Pioneiro na Região</span>
+                    </>
+                  ) : (
+                    <>
+                      <Users className="size-3.5 text-emerald-400" />
+                      <span>{confirmationsCount} Vizinhos Unificados</span>
+                    </>
+                  )}
+                </div>
+                <p className="text-xs text-zinc-300 truncate mt-0.5">
+                  {isFirstReporter
+                    ? "Você foi o primeiro a reportar este ponto!"
+                    : "Chamados repetidos foram eliminados pelo sistema."}
+                </p>
+              </div>
+            </div>
+
+            {/* Mosaico de Chips de Atributos */}
+            <div className="flex flex-wrap gap-1.5">
+              {isEcoCritical ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 text-xs text-amber-300 font-medium">
+                  <AlertTriangle className="size-3 text-amber-400" />
+                  Área Crítica / Córrego
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-800/90 border border-zinc-700/60 px-2.5 py-1 text-xs text-zinc-300 font-medium">
+                  <ShieldCheck className="size-3 text-emerald-400" />
+                  Área pública monitorada
+                </span>
+              )}
+
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 text-xs text-emerald-300 font-medium">
+                <Layers className="size-3 text-emerald-400" />
+                {formattedScale}
+              </span>
+            </div>
+
+            {/* Snapshot de Geolocalização */}
+            <div className="flex items-start gap-2.5 pt-2 border-t border-zinc-800/60">
+              <div className="size-7 rounded-full bg-zinc-800/90 flex items-center justify-center shrink-0 mt-0.5 text-emerald-400 border border-zinc-700/50">
+                <MapPin className="size-3.5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-zinc-100 truncate">
+                  {addressReference || "Localização registrada"}
+                </p>
+                <p className="text-[11px] text-zinc-400 truncate">
+                  São Paulo, SP • Validado via GPS / PostGIS
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Indicador de Privacidade e LGPD */}
+          <div className="flex items-center justify-center gap-1.5 mt-3 text-xs text-zinc-400">
+            <ShieldCheck className="size-3.5 text-emerald-400" />
+            <span className="tracking-tight">Zero cadastro · Seus dados não foram coletados</span>
+          </div>
+        </div>
+      </main>
+
+      {/* THUMB ZONE ERGONÔMICA (AÇÕES NA PARTE INFERIOR) */}
+      <footer className="w-full max-w-md mx-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 flex flex-col gap-2.5 z-20">
+        {/* BOTÃO PRIMÁRIO: ALERTA PUSH ASSÍNCRONO */}
         {!subscribed ? (
           <button
             type="button"
             onClick={handlePushClick}
             disabled={isSubscribing}
-            className="group relative flex min-h-[64px] w-full items-center justify-center gap-2.5 rounded-2xl bg-emerald-500 px-6 py-4 text-base font-semibold text-emerald-950 shadow-[0_10px_25px_-5px_rgba(16,185,129,0.4)] transition-all duration-150 active:scale-[0.98] hover:bg-emerald-400 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-400/50 disabled:opacity-70"
+            className="group w-full py-3.5 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-sm flex items-center justify-center gap-2 shadow-[0_8px_20px_rgba(16,185,129,0.28)] active:scale-[0.98] transition-all duration-150 disabled:opacity-70 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-400/50"
           >
-            <Bell className="size-5 transition-transform group-hover:rotate-12" aria-hidden="true" />
-            <span>
-              {isSubscribing ? "Ativando alerta no celular..." : "🔔 Me avise quando limparem"}
-            </span>
+            <Bell className="size-4.5 transition-transform group-hover:rotate-12" />
+            <span>{isSubscribing ? "Ativando alerta no aparelho..." : "🔔 Me avise quando limparem"}</span>
           </button>
         ) : (
-          <div className="flex min-h-[64px] w-full items-center justify-center gap-2.5 rounded-2xl border border-emerald-500/40 bg-emerald-500/15 px-6 py-4 text-sm font-medium text-emerald-200">
-            <CheckCircle2 className="size-5 text-emerald-400" />
+          <div className="w-full py-3.5 px-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 font-medium text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs">
+            <CheckCircle2 className="size-4.5 text-emerald-400" />
             <span>Alerta ativo! Você receberá o Antes & Depois aqui.</span>
           </div>
         )}
 
-        {/* BOTÃO SECUNDÁRIO DESTACADO: ACOMPANHAR STATUS EM TEMPO REAL */}
+        {/* BOTÃO SECUNDÁRIO: ACOMPANHAR STATUS EM TEMPO REAL */}
         <Link
           href={`/consulta?protocolo=${protocolCode}`}
-          className="flex min-h-[50px] w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 px-4 py-3 text-xs font-semibold text-emerald-300 transition-colors"
+          className="w-full py-3 px-4 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 text-zinc-100 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all duration-150 border border-zinc-800/80 shadow-xs"
         >
           <Search className="size-4 text-emerald-400" />
-          <span>Acompanhar este chamado agora (Antes vs. Depois)</span>
+          <span>Acompanhar este chamado agora</span>
         </Link>
 
-        {/* BOTÕES SECUNDÁRIOS SUTIS */}
-        <div className="flex items-center gap-2">
-          {typeof navigator !== "undefined" && "share" in navigator && (
-            <button
-              type="button"
-              onClick={handleShare}
-              className="flex min-h-[50px] flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 bg-zinc-900/90 px-4 py-3 text-xs font-semibold text-zinc-200 transition-colors hover:bg-zinc-800"
-            >
-              <Share2 className="size-3.5" />
-              <span>{shared ? "Compartilhado!" : "Mobilizar vizinhos"}</span>
-            </button>
-          )}
+        {/* BOTÃO TERCIÁRIO: FAZER NOVO RELATO */}
+        <button
+          type="button"
+          onClick={onNewReport}
+          className="w-full py-2 flex items-center justify-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition-colors mt-0.5"
+        >
+          <span>Fazer novo relato</span>
+          <ArrowRight className="size-3.5" />
+        </button>
 
-          <button
-            type="button"
-            onClick={onNewReport}
-            className="flex min-h-[50px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-zinc-900/90 px-4 py-3 text-xs font-semibold text-zinc-200 transition-colors hover:bg-zinc-800"
-          >
-            <span>Novo relato</span>
-            <ArrowRight className="size-3.5" />
-          </button>
-        </div>
-
-        {onViewMap && (
-          <button
-            type="button"
-            onClick={onViewMap}
-            className="py-1 text-center text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-colors"
-          >
-            Ver mapa de hotspots da cidade
-          </button>
+        {/* Feedback de compartilhamento via toast se não suportar share nativo */}
+        {shared && (
+          <div className="text-center text-[11px] text-emerald-400 animate-fade-in">
+            ✓ Link do protocolo copiado com sucesso!
+          </div>
         )}
       </footer>
-    </main>
+    </div>
   );
 };

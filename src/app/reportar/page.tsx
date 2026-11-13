@@ -58,6 +58,7 @@ function ReportarContent() {
   const [capturedPhoto, setCapturedPhoto] = useState<EdgeProcessedPhoto | null>(null);
   const [isScaleOpen, setIsScaleOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastReportedScale, setLastReportedScale] = useState<WasteScale>("MEDIUM");
   const [submissionResult, setSubmissionResult] = useState<SubmitReportResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -73,6 +74,7 @@ function ReportarContent() {
     async (scale: WasteScale, tags: string[]) => {
       if (!capturedPhoto) return;
 
+      setLastReportedScale(scale);
       setIsScaleOpen(false);
       setIsSubmitting(true);
       setErrorMessage(null);
@@ -172,9 +174,10 @@ function ReportarContent() {
       <CleanAlertCard
         protocolCode={submissionResult.protocol_code}
         confirmationsCount={submissionResult.confirmations_count}
-        dominantScale={submissionResult.status}
+        dominantScale={lastReportedScale}
         addressReference={activeQrAnchor?.addressHint || "Área pública monitorada"}
         isEcoCritical={activeQrAnchor?.isEcoCritical || false}
+        samplePhotoUrl={submissionResult.photo_url || capturedPhoto?.previewUrl}
         onSubscribePush={handleSubscribePush}
         onNewReport={handleReset}
         onViewMap={() => router.push("/")}
