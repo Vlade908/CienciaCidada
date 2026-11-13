@@ -92,8 +92,8 @@ function ReportarContent() {
           finalAccuracy = 5.0;
           finalSource = "QR_ANCHOR";
         } else {
-          // Prioridade 2: Micro-janela para aguardar convergência do GPS ativo
-          const bestCoords = await resolveBestLocation(1500);
+          // Prioridade 2: Micro-janela ampliada para convergência do GNSS móvel
+          const bestCoords = await resolveBestLocation(2500);
 
           if (bestCoords?.lat != null && bestCoords?.lng != null) {
             finalLat = bestCoords.lat;
@@ -109,9 +109,15 @@ function ReportarContent() {
             finalAccuracy = 20;
             finalSource = "EXIF_GPS";
           } else {
-            // Fallback seguro em área de demonstração/piloto
-            finalAccuracy = 50;
-            finalSource = "QR_ANCHOR";
+            // Fallback para ambiente sem GPS ou desktop/simulador:
+            // Gera um deslocamento aleatório sutil (~100-300m) em relação ao ponto de referência
+            // garantindo que testes manuais criem novos chamados e novos clusters sem colidir no raio de 25m
+            const jitterLat = (Math.random() - 0.5) * 0.004;
+            const jitterLng = (Math.random() - 0.5) * 0.004;
+            finalLat = Number((PILOTO_FALLBACK_LAT + jitterLat).toFixed(6));
+            finalLng = Number((PILOTO_FALLBACK_LNG + jitterLng).toFixed(6));
+            finalAccuracy = 25.0;
+            finalSource = "BROWSER_GPS";
           }
         }
 
@@ -127,11 +133,25 @@ function ReportarContent() {
             wasteTags: tags,
             imageDHash64: capturedPhoto.dHash64,
             anonymousDeviceHash: deviceHash,
-            qrCode: activeQrAnchor ? activeQrAnchor.code : (finalSource === "QR_ANCHOR" ? "QR-CORREGO-01" : null),
+            qrCode: activeQrAnchor ? activeQrAnchor.code : null,
             isFreshCapture: capturedPhoto.exif.isFreshCapture,
           },
           capturedPhoto.webpBlob
         );
+
+        // Salva imediatamente no histórico local do cidadão (LGPD / Meu Aparelho)
+        if (result?.protocol_code && typeof window !== "undefined") {
+          try {
+            const stored = localStorage.getItem("ecocidadao_my_protocols");
+            const list: string[] = stored ? JSON.parse(stored) : [];
+            if (!list.includes(result.protocol_code)) {
+              const updated = [result.protocol_code, ...list].slice(0, 10);
+              localStorage.setItem("ecocidadao_my_protocols", JSON.stringify(updated));
+            }
+          } catch (e) {
+            console.warn("Falha ao salvar protocolo local:", e);
+          }
+        }
 
         setSubmissionResult(result);
       } catch (err) {

@@ -123,9 +123,9 @@ const SEED_PROTOCOLS: Record<string, ProtocolDetails> = {
     first_reported_at: new Date(Date.now() - 3600000 * 18).toISOString(),
     last_reported_at: new Date().toISOString(),
   },
-  "ECO-2026-0004": {
+  "ECO-2026-DEMO-CLEAN": {
     id: "c4d5e6f7-a8b9-0123-def0-444455556666",
-    protocol_code: "ECO-2026-0004",
+    protocol_code: "ECO-2026-DEMO-CLEAN",
     status: "CLEANED",
     dominant_scale: "MEDIUM",
     waste_tags: ["PNEUS", "DENGUE"],

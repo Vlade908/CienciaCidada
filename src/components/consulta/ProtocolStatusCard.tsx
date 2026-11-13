@@ -61,19 +61,19 @@ export function ProtocolStatusCard({ details, onNewSearch }: ProtocolStatusCardP
     { 
       id: 1, 
       title: 'Relatado', 
-      desc: details.first_reported_at ? new Date(details.first_reported_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '14:10', 
+      desc: details.first_reported_at ? new Date(details.first_reported_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 'Registrado', 
       done: true 
     },
     { 
       id: 2, 
       title: 'Triado', 
-      desc: !isOpen ? '14:45' : 'Pendente', 
+      desc: !isOpen ? 'Validado' : 'Pendente', 
       done: !isOpen 
     },
     { 
       id: 3, 
       title: 'Em Rota', 
-      desc: isInRoute || isCleaned ? '15:20' : 'Aguardando', 
+      desc: isInRoute || isCleaned ? 'Despachado' : 'Aguardando', 
       done: isInRoute || isCleaned 
     },
     { 
@@ -220,10 +220,11 @@ export function ProtocolStatusCard({ details, onNewSearch }: ProtocolStatusCardP
         </div>
 
         {/* STEPPER / LINHA DO TEMPO ESTILO STITCH / APPLE HIG */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-2 flex-wrap text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-            <span>Status do Fluxo Operacional</span>
-            <span className="font-mono text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
+        <div className="space-y-3 pt-1">
+          <div className="flex items-center justify-between gap-2 text-xs font-semibold">
+            <span className="text-zinc-600 dark:text-zinc-400">Status do Fluxo</span>
+            <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 px-2.5 py-0.5 rounded-full shrink-0">
+              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
               {progressLabel}
             </span>
           </div>

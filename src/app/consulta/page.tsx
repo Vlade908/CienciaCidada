@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, Suspense, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { fetchProtocolDetails, ProtocolDetails } from '@/lib/supabase';
+import { fetchProtocolDetails, ProtocolDetails, supabase } from '@/lib/supabase';
 import { ProtocolStatusCard } from '@/components/consulta/ProtocolStatusCard';
 import { useTheme } from '@/context/ThemeContext';
 import { 
@@ -39,19 +39,19 @@ interface SeedCardPreview {
 
 const DEMO_PREVIEWS: SeedCardPreview[] = [
   {
-    code: 'ECO-2026-0004',
-    title: 'Descarte Irregular de Entulho',
-    address: 'Av. Paulista, 1200 • Bela Vista, SP',
-    status: 'CLEANED',
-    time: 'Hoje • 16:15',
-    hasPhoto: true,
-  },
-  {
     code: 'ECO-2026-0003',
     title: 'Poda e Restos em Calçada',
     address: 'Rua Augusta, 450 • Consolação, SP',
     status: 'IN_ROUTE',
     time: 'Hoje • 14:20',
+    hasPhoto: true,
+  },
+  {
+    code: 'ECO-2026-0002',
+    title: 'Entulho em Terreno Baldio',
+    address: 'Av. Brigadeiro Faria Lima, 1800 • SP',
+    status: 'CLEANED',
+    time: 'Hoje • 12:10',
     hasPhoto: true,
   },
   {
@@ -77,6 +77,46 @@ function ConsultaContent() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [recentProtocols, setRecentProtocols] = useState<string[]>([]);
   const [filterTab, setFilterTab] = useState<'ALL' | 'OPEN' | 'CLEANED'>('ALL');
+  const [clustersList, setClustersList] = useState<SeedCardPreview[]>([]);
+
+  // Carrega chamados reais do Supabase para manter os cards e contadores 100% fiéis
+  useEffect(() => {
+    let isMounted = true;
+    async function loadRecentFromSupabase() {
+      try {
+        const { data } = await supabase
+          .from('incident_clusters')
+          .select('protocol_code, status, dominant_scale, address_reference, first_reported_at, sample_photo_url')
+          .order('first_reported_at', { ascending: false })
+          .limit(8);
+
+        if (isMounted && data && data.length > 0) {
+          const mapped: SeedCardPreview[] = data.map((c: any) => ({
+            code: c.protocol_code,
+            title:
+              c.dominant_scale === 'LARGE'
+                ? 'Descarte de Grande Porte'
+                : c.dominant_scale === 'SMALL'
+                ? 'Resíduos de Pequeno Porte'
+                : 'Descarte Irregular de Resíduos',
+            address: c.address_reference || 'São Paulo, SP • Ponto georreferenciado',
+            status: c.status as any,
+            time: c.first_reported_at
+              ? `Hoje • ${new Date(c.first_reported_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+              : 'Recente',
+            hasPhoto: Boolean(c.sample_photo_url),
+          }));
+          setClustersList(mapped);
+        }
+      } catch (err) {
+        console.warn('Erro ao carregar lista de chamados:', err);
+      }
+    }
+    loadRecentFromSupabase();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Carrega lista de chamados salvos no aparelho do cidadão (LGPD)
   useEffect(() => {
@@ -143,16 +183,27 @@ function ConsultaContent() {
     router.replace('/consulta');
   };
 
+  // Lista ativa: chamados reais do Supabase ou dados de demonstração como fallback
+  const currentList = clustersList.length > 0 ? clustersList : DEMO_PREVIEWS;
+
+  const countTotal = currentList.length;
+  const countOpen = currentList.filter(
+    (item) => item.status === 'OPEN' || item.status === 'IN_ROUTE' || item.status === 'TRIAGED'
+  ).length;
+  const countCleaned = currentList.filter((item) => item.status === 'CLEANED').length;
+
   // Filtragem dos cards de visualização
   const filteredDemos = useMemo(() => {
     if (filterTab === 'OPEN') {
-      return DEMO_PREVIEWS.filter((item) => item.status === 'OPEN' || item.status === 'IN_ROUTE' || item.status === 'TRIAGED');
+      return currentList.filter(
+        (item) => item.status === 'OPEN' || item.status === 'IN_ROUTE' || item.status === 'TRIAGED'
+      );
     }
     if (filterTab === 'CLEANED') {
-      return DEMO_PREVIEWS.filter((item) => item.status === 'CLEANED');
+      return currentList.filter((item) => item.status === 'CLEANED');
     }
-    return DEMO_PREVIEWS;
-  }, [filterTab]);
+    return currentList;
+  }, [filterTab, currentList]);
 
   return (
     <div className="min-h-dvh w-full flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors pb-36">
@@ -260,7 +311,7 @@ function ConsultaContent() {
               <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono ${
                 filterTab === 'ALL' ? 'bg-white/20 text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300'
               }`}>
-                3
+                {countTotal}
               </span>
             </button>
 
@@ -277,7 +328,7 @@ function ConsultaContent() {
               <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono ${
                 filterTab === 'OPEN' ? 'bg-white/20 text-white' : 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
               }`}>
-                2
+                {countOpen}
               </span>
             </button>
 
@@ -295,7 +346,7 @@ function ConsultaContent() {
               <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono ${
                 filterTab === 'CLEANED' ? 'bg-white/20 text-white' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
               }`}>
-                1
+                {countCleaned}
               </span>
             </button>
           </div>
