@@ -60,6 +60,137 @@ export interface SubmitReportResult {
 }
 
 /**
+ * Estrutura pública do protocolo para acompanhamento transparente do cidadão
+ */
+export interface ProtocolDetails {
+  id: string;
+  protocol_code: string;
+  status: "OPEN" | "TRIAGED" | "IN_ROUTE" | "CLEANED" | "ARCHIVED";
+  dominant_scale: "SMALL" | "MEDIUM" | "LARGE";
+  waste_tags: string[];
+  confirmations_count: number;
+  priority_score: number;
+  is_eco_critical: boolean;
+  address_reference?: string;
+  sample_photo_url: string;
+  cleaned_photo_url?: string | null;
+  first_reported_at: string;
+  last_reported_at: string;
+  cleaned_at?: string | null;
+}
+
+// Conjunto de demonstração inicial caso o banco ainda não possua o registro digitado
+const SEED_PROTOCOLS: Record<string, ProtocolDetails> = {
+  "ECO-2026-0001": {
+    id: "c1a2b3c4-d5e6-7890-abcd-111122223333",
+    protocol_code: "ECO-2026-0001",
+    status: "OPEN",
+    dominant_scale: "LARGE",
+    waste_tags: ["ENTULHO", "CORREGO", "CONSTRUCAO"],
+    confirmations_count: 7,
+    priority_score: 92.5,
+    is_eco_critical: true,
+    address_reference: "Margem do Córrego Limpo, próximo ao viaduto",
+    sample_photo_url: "https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=600&q=80",
+    first_reported_at: new Date(Date.now() - 3600000 * 4).toISOString(),
+    last_reported_at: new Date().toISOString(),
+  },
+  "ECO-2026-0002": {
+    id: "c2b3c4d5-e6f7-8901-bcde-222233334444",
+    protocol_code: "ECO-2026-0002",
+    status: "IN_ROUTE",
+    dominant_scale: "MEDIUM",
+    waste_tags: ["MOVEIS_VELHOS", "COLCHAO"],
+    confirmations_count: 4,
+    priority_score: 68.0,
+    is_eco_critical: false,
+    address_reference: "Rua das Flores, altura do número 450",
+    sample_photo_url: "https://images.unsplash.com/photo-1605600659908-0ef719419d41?auto=format&fit=crop&w=600&q=80",
+    first_reported_at: new Date(Date.now() - 3600000 * 11).toISOString(),
+    last_reported_at: new Date().toISOString(),
+  },
+  "ECO-2026-0003": {
+    id: "c3c4d5e6-f7a8-9012-cdef-333344445555",
+    protocol_code: "ECO-2026-0003",
+    status: "OPEN",
+    dominant_scale: "SMALL",
+    waste_tags: ["LIXO_DOMESTICO"],
+    confirmations_count: 2,
+    priority_score: 34.0,
+    is_eco_critical: false,
+    address_reference: "Travessa da Esperança com Av. Central",
+    sample_photo_url: "https://images.unsplash.com/photo-1528323273322-d81458248d40?auto=format&fit=crop&w=600&q=80",
+    first_reported_at: new Date(Date.now() - 3600000 * 18).toISOString(),
+    last_reported_at: new Date().toISOString(),
+  },
+  "ECO-2026-0004": {
+    id: "c4d5e6f7-a8b9-0123-def0-444455556666",
+    protocol_code: "ECO-2026-0004",
+    status: "CLEANED",
+    dominant_scale: "MEDIUM",
+    waste_tags: ["PNEUS", "DENGUE"],
+    confirmations_count: 5,
+    priority_score: 81.0,
+    is_eco_critical: true,
+    address_reference: "Rua Bela Vista, terreno baldio ao lado da praça",
+    sample_photo_url: "https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=600&q=80",
+    cleaned_photo_url: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80",
+    first_reported_at: new Date(Date.now() - 3600000 * 36).toISOString(),
+    last_reported_at: new Date(Date.now() - 3600000 * 12).toISOString(),
+    cleaned_at: new Date(Date.now() - 3600000 * 8).toISOString(),
+  },
+};
+
+/**
+ * Consulta os detalhes públicos de um protocolo de descarte
+ * @param protocolCode Código no formato 'ECO-2026-XXXX'
+ */
+export async function fetchProtocolDetails(
+  protocolCode: string
+): Promise<ProtocolDetails | null> {
+  const normalized = protocolCode.trim().toUpperCase();
+  if (!normalized) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from("incident_clusters")
+      .select(`
+        id,
+        protocol_code,
+        status,
+        dominant_scale,
+        waste_tags,
+        confirmations_count,
+        priority_score,
+        is_eco_critical,
+        address_reference,
+        sample_photo_url,
+        cleaned_photo_url,
+        first_reported_at,
+        last_reported_at,
+        cleaned_at
+      `)
+      .eq("protocol_code", normalized)
+      .maybeSingle();
+
+    if (error) {
+      console.warn("[EcoCidadão] Erro na consulta do protocolo:", error.message);
+      return SEED_PROTOCOLS[normalized] || null;
+    }
+
+    if (data) {
+      return data as ProtocolDetails;
+    }
+
+    // Se não encontrou no banco, checa nos dados seed de demonstração
+    return SEED_PROTOCOLS[normalized] || null;
+  } catch (err) {
+    console.error("[EcoCidadão] Falha na rede ao consultar protocolo:", err);
+    return SEED_PROTOCOLS[normalized] || null;
+  }
+}
+
+/**
  * Envia o relato completo para o Supabase (Upload da foto WebP + Execução da RPC PostGIS).
  *
  * @param payload Dados georreferenciados e metadados de observação

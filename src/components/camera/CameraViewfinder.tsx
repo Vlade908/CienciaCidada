@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import Link from "next/link";
 import {
   Camera,
   Zap,
@@ -9,6 +10,7 @@ import {
   ShieldCheck,
   Sparkles,
   RefreshCcw,
+  Search,
 } from "lucide-react";
 import { GpsStatusPill } from "@/components/camera/GpsStatusPill";
 import type { GpsState } from "@/hooks/useHighAccuracyGps";
@@ -223,13 +225,24 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
 
       {/* HUD SUPERIOR */}
       <header className="relative z-20 flex flex-col items-center gap-2 px-4 pt-[max(1rem,env(safe-area-inset-top))]">
-        <GpsStatusPill
-          state={gpsState}
-          accuracyMeters={accuracyMeters}
-          qrCodeLabel={qrCodeLabel}
-          convergenceProgress={convergenceProgress}
-          onRetry={onRetryGps}
-        />
+        <div className="flex w-full max-w-sm items-center justify-between gap-2">
+          <GpsStatusPill
+            state={gpsState}
+            accuracyMeters={accuracyMeters}
+            qrCodeLabel={qrCodeLabel}
+            convergenceProgress={convergenceProgress}
+            onRetry={onRetryGps}
+          />
+
+          <Link
+            href="/consulta"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-900/85 hover:bg-zinc-800 border border-white/15 text-zinc-100 text-xs font-semibold backdrop-blur-md active:scale-95 transition-all shadow-md shrink-0"
+            title="Acompanhar meus chamados pelo protocolo"
+          >
+            <Search className="size-3.5 text-emerald-400" aria-hidden="true" />
+            <span>Consultar</span>
+          </Link>
+        </div>
 
         <div className="inline-flex items-center gap-1.5 rounded-full bg-zinc-950/60 px-3 py-1 text-[11px] font-medium text-zinc-200 backdrop-blur-sm">
           <ShieldCheck className="size-3.5 text-emerald-400" aria-hidden="true" />

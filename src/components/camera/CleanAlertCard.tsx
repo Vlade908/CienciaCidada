@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Bell,
   CheckCircle2,
@@ -9,6 +10,7 @@ import {
   ArrowRight,
   ShieldCheck,
   Share2,
+  Search,
 } from "lucide-react";
 
 export interface CleanAlertCardProps {
@@ -45,6 +47,22 @@ export const CleanAlertCard: React.FC<CleanAlertCardProps> = ({
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const [shared, setShared] = useState(false);
+
+  // Grava o protocolo gerado no histórico local do cidadão (1 toque)
+  useEffect(() => {
+    if (typeof window !== "undefined" && protocolCode) {
+      try {
+        const stored = localStorage.getItem("ecocidadao_my_protocols");
+        const list: string[] = stored ? JSON.parse(stored) : [];
+        if (!list.includes(protocolCode)) {
+          const updated = [protocolCode, ...list].slice(0, 10);
+          localStorage.setItem("ecocidadao_my_protocols", JSON.stringify(updated));
+        }
+      } catch (err) {
+        console.warn("Erro ao salvar protocolo no histórico local:", err);
+      }
+    }
+  }, [protocolCode]);
 
   const handlePushClick = async () => {
     setIsSubscribing(true);
@@ -164,6 +182,15 @@ export const CleanAlertCard: React.FC<CleanAlertCardProps> = ({
             <span>Alerta ativo! Você receberá o Antes & Depois aqui.</span>
           </div>
         )}
+
+        {/* BOTÃO SECUNDÁRIO DESTACADO: ACOMPANHAR STATUS EM TEMPO REAL */}
+        <Link
+          href={`/consulta?protocolo=${protocolCode}`}
+          className="flex min-h-[50px] w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 px-4 py-3 text-xs font-semibold text-emerald-300 transition-colors"
+        >
+          <Search className="size-4 text-emerald-400" />
+          <span>Acompanhar este chamado agora (Antes vs. Depois)</span>
+        </Link>
 
         {/* BOTÕES SECUNDÁRIOS SUTIS */}
         <div className="flex items-center gap-2">
