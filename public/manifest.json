@@ -1,0 +1,10 @@
+{
+  "name": "EcoCidadão",
+  "short_name": "EcoCidadão",
+  "description": "Ciência Cidadã para monitoramento de descarte irregular",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "orientation": "portrait"
+}
