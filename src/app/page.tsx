@@ -9,8 +9,6 @@ import { reverseGeocode } from '@/lib/reverseGeocode';
 import { 
   Camera, 
   Search, 
-  Map, 
-  Building2, 
   Clock, 
   MapPin, 
   Layers, 
@@ -138,16 +136,6 @@ function HomeContent() {
                   <Moon className="w-4 h-4 text-white" />
                 )}
               </button>
-
-              {/* Atalho para Gestão */}
-              <Link
-                href="/admin"
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white transition-all active:scale-95 border border-white/10"
-                title="Área restrita de gestão municipal"
-                aria-label="Acesso de Gestão"
-              >
-                <Building2 className="w-4 h-4 text-emerald-300" />
-              </Link>
             </div>
           </div>
 
@@ -162,46 +150,32 @@ function HomeContent() {
             </p>
           </div>
 
-          {/* Grid de 4 Ações Rápidas (Glassmorphism do Stitch) */}
-          <div className="grid grid-cols-4 gap-2 pt-1">
+          {/* Grid de 2 Ações Rápidas do Munícipe (Glassmorphism do Stitch) */}
+          <div className="grid grid-cols-2 gap-3 pt-1">
             <Link
               href={reportUrl}
-              className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-md text-white transition-all active:scale-95 border border-white/10 group shadow-xs"
+              className="flex items-center gap-3 p-3 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-md text-white transition-all active:scale-95 border border-white/10 group shadow-xs"
             >
-              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-300 mb-1.5 group-hover:scale-110 transition-transform">
+              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-300 group-hover:scale-110 transition-transform shrink-0">
                 <Camera className="w-5 h-5 stroke-[2]" />
               </div>
-              <span className="text-[11px] font-semibold text-white tracking-tight">Reportar</span>
+              <div className="flex flex-col text-left">
+                <span className="text-xs font-bold text-white tracking-tight">Reportar</span>
+                <span className="text-[10px] text-white/70">Foto em 5s</span>
+              </div>
             </Link>
 
             <Link
               href="/consulta"
-              className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-md text-white transition-all active:scale-95 border border-white/10 group shadow-xs"
+              className="flex items-center gap-3 p-3 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-md text-white transition-all active:scale-95 border border-white/10 group shadow-xs"
             >
-              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white mb-1.5 group-hover:scale-110 transition-transform">
+              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white group-hover:scale-110 transition-transform shrink-0">
                 <Search className="w-5 h-5 stroke-[1.8]" />
               </div>
-              <span className="text-[11px] font-semibold text-white tracking-tight">Consultar</span>
-            </Link>
-
-            <Link
-              href="/admin/map"
-              className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-md text-white transition-all active:scale-95 border border-white/10 group shadow-xs"
-            >
-              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white mb-1.5 group-hover:scale-110 transition-transform">
-                <Map className="w-5 h-5 stroke-[1.8]" />
+              <div className="flex flex-col text-left">
+                <span className="text-xs font-bold text-white tracking-tight">Consultar</span>
+                <span className="text-[10px] text-white/70">Ver chamados</span>
               </div>
-              <span className="text-[11px] font-semibold text-white tracking-tight">Mapa</span>
-            </Link>
-
-            <Link
-              href="/admin"
-              className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-md text-white transition-all active:scale-95 border border-white/10 group shadow-xs"
-            >
-              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white mb-1.5 group-hover:scale-110 transition-transform">
-                <Building2 className="w-5 h-5 stroke-[1.8]" />
-              </div>
-              <span className="text-[11px] font-semibold text-white tracking-tight">Gestão</span>
             </Link>
           </div>
         </div>
@@ -350,11 +324,11 @@ function HomeContent() {
       <div className="fixed bottom-4 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
         <nav 
           aria-label="Navegação inferior"
-          className="pointer-events-auto flex items-center justify-between w-full max-w-[360px] px-3 py-1.5 bg-zinc-950/85 dark:bg-zinc-900/90 backdrop-blur-xl rounded-full shadow-[0_12px_36px_rgba(0,0,0,0.3)] border border-white/15"
+          className="pointer-events-auto flex items-center justify-around w-full max-w-[320px] px-3 py-1.5 bg-zinc-950/85 dark:bg-zinc-900/90 backdrop-blur-xl rounded-full shadow-[0_12px_36px_rgba(0,0,0,0.3)] border border-white/15"
         >
           <Link
             href="/"
-            className="flex flex-col items-center justify-center min-w-[50px] min-h-[44px] px-3 py-1 rounded-full bg-white/15 text-emerald-300 font-medium text-[11px] transition-all"
+            className="flex flex-col items-center justify-center min-w-[60px] min-h-[44px] px-3 py-1 rounded-full bg-white/15 text-emerald-300 font-medium text-[11px] transition-all"
             aria-current="page"
           >
             <Layers className="w-4 h-4 mb-0.5" />
@@ -363,7 +337,7 @@ function HomeContent() {
 
           <Link
             href={reportUrl}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/40 transition-all active:scale-95"
+            className="flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/40 transition-all active:scale-95"
           >
             <Camera className="w-4 h-4 stroke-[2.2]" />
             <span>Reportar</span>
@@ -371,18 +345,10 @@ function HomeContent() {
 
           <Link
             href="/consulta"
-            className="flex flex-col items-center justify-center min-w-[50px] min-h-[44px] px-3 py-1 rounded-full text-zinc-300 hover:text-white font-medium text-[11px] transition-all"
+            className="flex flex-col items-center justify-center min-w-[60px] min-h-[44px] px-3 py-1 rounded-full text-zinc-300 hover:text-white font-medium text-[11px] transition-all"
           >
             <Search className="w-4 h-4 mb-0.5" />
             <span>Consultar</span>
-          </Link>
-
-          <Link
-            href="/admin"
-            className="flex flex-col items-center justify-center min-w-[50px] min-h-[44px] px-3 py-1 rounded-full text-zinc-300 hover:text-white font-medium text-[11px] transition-all"
-          >
-            <Building2 className="w-4 h-4 mb-0.5" />
-            <span>Gestão</span>
           </Link>
         </nav>
       </div>

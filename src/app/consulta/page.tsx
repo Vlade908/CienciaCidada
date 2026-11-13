@@ -24,7 +24,6 @@ import {
   CheckCircle2,
   Truck,
   Lightbulb,
-  Building2,
   Check
 } from 'lucide-react';
 
@@ -493,11 +492,11 @@ function ConsultaContent() {
       <div className="fixed bottom-4 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
         <nav 
           aria-label="Navegação inferior"
-          className="pointer-events-auto flex items-center justify-between w-full max-w-[360px] px-3 py-1.5 bg-zinc-950/85 dark:bg-zinc-900/90 backdrop-blur-xl rounded-full shadow-[0_12px_36px_rgba(0,0,0,0.3)] border border-white/15"
+          className="pointer-events-auto flex items-center justify-around w-full max-w-[320px] px-3 py-1.5 bg-zinc-950/85 dark:bg-zinc-900/90 backdrop-blur-xl rounded-full shadow-[0_12px_36px_rgba(0,0,0,0.3)] border border-white/15"
         >
           <Link
             href="/"
-            className="flex flex-col items-center justify-center min-w-[50px] min-h-[44px] px-3 py-1 rounded-full text-zinc-300 hover:text-white font-medium text-[11px] transition-all"
+            className="flex flex-col items-center justify-center min-w-[60px] min-h-[44px] px-3 py-1 rounded-full text-zinc-300 hover:text-white font-medium text-[11px] transition-all"
           >
             <Layers className="size-4 mb-0.5" />
             <span>Início</span>
@@ -505,7 +504,7 @@ function ConsultaContent() {
 
           <Link
             href="/reportar"
-            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/40 transition-all active:scale-95"
+            className="flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/40 transition-all active:scale-95"
           >
             <Camera className="size-4 stroke-[2.2]" />
             <span>Reportar</span>
@@ -513,19 +512,11 @@ function ConsultaContent() {
 
           <Link
             href="/consulta"
-            className="flex flex-col items-center justify-center min-w-[50px] min-h-[44px] px-3 py-1 rounded-full bg-white/15 text-emerald-300 font-medium text-[11px] transition-all"
+            className="flex flex-col items-center justify-center min-w-[60px] min-h-[44px] px-3 py-1 rounded-full bg-white/15 text-emerald-300 font-medium text-[11px] transition-all"
             aria-current="page"
           >
             <Search className="size-4 mb-0.5 text-emerald-400" />
             <span>Consultar</span>
-          </Link>
-
-          <Link
-            href="/admin"
-            className="flex flex-col items-center justify-center min-w-[50px] min-h-[44px] px-3 py-1 rounded-full text-zinc-300 hover:text-white font-medium text-[11px] transition-all"
-          >
-            <Building2 className="size-4 mb-0.5" />
-            <span>Gestão</span>
           </Link>
         </nav>
       </div>
