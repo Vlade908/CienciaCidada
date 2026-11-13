@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 import { 
   Building2, 
@@ -13,7 +13,8 @@ import {
   LayoutDashboard,
   Map as MapIcon,
   Sun,
-  Moon
+  Moon,
+  LogOut
 } from 'lucide-react';
 
 interface AdminHeaderProps {
@@ -29,9 +30,26 @@ export function AdminHeader({
   isRefreshing = false,
 }: AdminHeaderProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
   const isDashboardActive = pathname === '/admin';
   const isMapActive = pathname.startsWith('/admin/map');
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await fetch('/api/admin/auth', { method: 'DELETE' });
+      router.replace('/admin/login');
+      router.refresh();
+    } catch (err) {
+      console.error('Erro ao encerrar sessão:', err);
+      window.location.href = '/admin/login';
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <header className="h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md px-4 flex items-center justify-between shrink-0 z-30 select-none transition-colors">
@@ -142,6 +160,17 @@ export function AdminHeader({
           <Smartphone className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">App Cidadão</span>
         </Link>
+
+        {/* Botão de Encerramento de Sessão (Logout) */}
+        <button
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="flex items-center space-x-1.5 px-2.5 py-1 text-xs rounded-md bg-zinc-100 hover:bg-rose-500/10 hover:text-rose-600 dark:bg-zinc-900 dark:hover:bg-rose-500/20 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800 transition-colors font-medium disabled:opacity-50"
+          title="Encerrar sessão administrativa"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          <span className="hidden lg:inline">Sair</span>
+        </button>
       </div>
     </header>
   );
