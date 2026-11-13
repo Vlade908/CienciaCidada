@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 import { getQrAnchorByCode } from '@/lib/qrAnchors';
+import { reverseGeocode } from '@/lib/reverseGeocode';
 import { 
   Camera, 
   Search, 
@@ -32,6 +33,7 @@ function HomeContent() {
 
   // Protocolos salvos no aparelho do cidadão (LGPD/localStorage)
   const [savedProtocols, setSavedProtocols] = useState<string[]>([]);
+  const [userLocation, setUserLocation] = useState<string>('Detectando localização...');
   const [mounted, setMounted] = useState(false);
 
   // Detecção de âncora de QR Code física se o munícipe escaneou uma placa
@@ -52,6 +54,36 @@ function HomeContent() {
         }
       } catch (err) {
         console.warn('Erro ao ler histórico de protocolos:', err);
+      }
+
+      // Restaura última localização do cache do munícipe se existir
+      const cachedLocation = localStorage.getItem('ecocidadao_user_city');
+      if (cachedLocation) {
+        setUserLocation(cachedLocation);
+      }
+
+      // Consulta GPS do navegador para obter a cidade e estado em tempo real
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            try {
+              const geo = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+              if (geo?.cityState) {
+                setUserLocation(geo.cityState);
+                localStorage.setItem('ecocidadao_user_city', geo.cityState);
+              }
+            } catch (err) {
+              console.warn('Erro ao geocodificar localização na home:', err);
+            }
+          },
+          (err) => {
+            console.warn('GPS não autorizado ou indisponível na home:', err.message);
+            if (!cachedLocation) {
+              setUserLocation('Localização via Satélite');
+            }
+          },
+          { timeout: 8000, maximumAge: 60000, enableHighAccuracy: false }
+        );
       }
     }
   }, []);
@@ -82,12 +114,12 @@ function HomeContent() {
                 <span className="text-xs text-white/80 font-medium">Olá, Cidadão 👋</span>
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md text-[11px] font-medium text-white shadow-xs border border-white/10">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Piloto SP
+                  {userLocation && userLocation !== 'Detectando localização...' ? userLocation.split(',')[0] : 'EcoCidadão'}
                 </span>
               </div>
               <div className="flex items-center gap-1 text-white/90 text-xs">
                 <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="font-medium tracking-wide">São Paulo, SP</span>
+                <span className="font-medium tracking-wide">{userLocation}</span>
               </div>
             </div>
 

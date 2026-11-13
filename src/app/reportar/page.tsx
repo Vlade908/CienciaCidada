@@ -10,6 +10,7 @@ import { useHighAccuracyGps } from "@/hooks/useHighAccuracyGps";
 import type { EdgeProcessedPhoto } from "@/hooks/useEdgeImageProcessor";
 import { submitReportToDatabase, type SubmitReportResult } from "@/lib/supabase";
 import { getQrAnchorByCode } from "@/lib/qrAnchors";
+import { reverseGeocode } from "@/lib/reverseGeocode";
 import { Loader2, ArrowLeft } from "lucide-react";
 
 // Coordenadas de contingência do Projeto Piloto Universitário (São Paulo - Marco Zero / Piloto)
@@ -30,6 +31,7 @@ function ReportarContent() {
   // GPS em background (Se houver âncora QR física, entra em QR_ANCHORED travando as coordenadas em ±5m)
   const {
     state: gpsState,
+    coordinates: gpsCoords,
     accuracyMeters,
     convergenceProgress,
     resolveBestLocation,
@@ -38,6 +40,27 @@ function ReportarContent() {
     targetAccuracyMeters: 20,
     qrAnchor: activeQrAnchor,
   });
+
+  const [detectedLocation, setDetectedLocation] = useState<string>("Localizando via satélite...");
+
+  // Geocodificação reversa em background da posição do munícipe
+  useEffect(() => {
+    const cached = typeof window !== "undefined" ? localStorage.getItem("ecocidadao_user_city") : null;
+    if (cached) setDetectedLocation(cached);
+
+    if (gpsCoords?.lat != null && gpsCoords?.lng != null) {
+      reverseGeocode(gpsCoords.lat, gpsCoords.lng)
+        .then((res) => {
+          if (res?.displayName) {
+            setDetectedLocation(res.displayName);
+            if (res.cityState && typeof window !== "undefined") {
+              localStorage.setItem("ecocidadao_user_city", res.cityState);
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [gpsCoords?.lat, gpsCoords?.lng]);
 
   // Dispositivo anônimo persistido (LGPD: sem CPF/email, apenas hash aleatório para proteção anti-sybil)
   const [deviceHash, setDeviceHash] = useState("anonymous-device");
@@ -200,7 +223,7 @@ function ReportarContent() {
         protocolCode={submissionResult.protocol_code}
         confirmationsCount={submissionResult.confirmations_count}
         dominantScale={lastReportedScale}
-        addressReference={activeQrAnchor?.addressHint || "Área pública monitorada"}
+        addressReference={submissionResult.address_reference || activeQrAnchor?.addressHint || detectedLocation || "Área pública monitorada"}
         isEcoCritical={activeQrAnchor?.isEcoCritical || false}
         samplePhotoUrl={submissionResult.photo_url || capturedPhoto?.previewUrl}
         onSubscribePush={handleSubscribePush}
@@ -219,6 +242,7 @@ function ReportarContent() {
         qrAnchor={activeQrAnchor}
         qrCodeLabel={activeQrAnchor?.code}
         convergenceProgress={convergenceProgress}
+        locationHint={detectedLocation}
         onRetryGps={retryCalibration}
         onPhotoProcessed={handlePhotoProcessed}
       />
@@ -228,6 +252,7 @@ function ReportarContent() {
         onClose={() => setIsScaleOpen(false)}
         photo={capturedPhoto}
         onSelectScale={handleSelectScale}
+        locationLabel={detectedLocation}
       />
 
       {/* Overlay translúcido de envio em segundo plano */}

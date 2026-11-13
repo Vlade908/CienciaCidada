@@ -108,8 +108,8 @@ export function ProtocolStatusCard({ details, onNewSearch }: ProtocolStatusCardP
     const shareData = {
       title: `EcoCidadão - Protocolo ${details.protocol_code}`,
       text: isCleaned
-        ? `Boa notícia! O ponto de descarte irregular em ${details.address_reference || 'São Paulo'} foi 100% revitalizado pela prefeitura!`
-        : `Acompanhe a limpeza deste ponto em ${details.address_reference || 'São Paulo'}. Já somos ${details.confirmations_count} moradores unidos!`,
+        ? `Boa notícia! O ponto de descarte irregular em ${details.address_reference || 'nossa região'} foi 100% revitalizado pela prefeitura!`
+        : `Acompanhe a limpeza deste ponto em ${details.address_reference || 'nossa região'}. Já somos ${details.confirmations_count} moradores unidos!`,
       url: shareUrl,
     };
 
@@ -197,7 +197,7 @@ export function ProtocolStatusCard({ details, onNewSearch }: ProtocolStatusCardP
             <p className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
               <MapPin className="size-3.5 text-emerald-500 shrink-0" />
               <span className="truncate">
-                {details.address_reference || 'São Paulo, SP • Ponto georreferenciado'}
+                {details.address_reference || 'Ponto georreferenciado via satélite'}
               </span>
             </p>
           </div>

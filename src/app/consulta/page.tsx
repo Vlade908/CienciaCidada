@@ -99,7 +99,7 @@ function ConsultaContent() {
                 : c.dominant_scale === 'SMALL'
                 ? 'Resíduos de Pequeno Porte'
                 : 'Descarte Irregular de Resíduos',
-            address: c.address_reference || 'São Paulo, SP • Ponto georreferenciado',
+            address: c.address_reference || 'Ponto georreferenciado via GPS',
             status: c.status as any,
             time: c.first_reported_at
               ? `Hoje • ${new Date(c.first_reported_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`

@@ -113,7 +113,7 @@ export const CleanAlertCard: React.FC<CleanAlertCardProps> = ({
       try {
         await navigator.share({
           title: `EcoCidadão - Protocolo ${protocolCode}`,
-          text: `Ajudei a mapear um ponto de descarte irregular em São Paulo. Protocolo #${protocolCode}. Já somos ${confirmationsCount} moradores acompanhando a zeladoria!`,
+          text: `Ajudei a mapear um ponto de descarte irregular em ${addressReference || 'nossa região'}. Protocolo #${protocolCode}. Já somos ${confirmationsCount} moradores acompanhando a zeladoria!`,
           url: `${window.location.origin}/consulta?protocolo=${protocolCode}`,
         });
         setShared(true);
@@ -302,7 +302,7 @@ export const CleanAlertCard: React.FC<CleanAlertCardProps> = ({
                   {addressReference || "Localização registrada"}
                 </p>
                 <p className="text-[11px] text-zinc-400 truncate">
-                  São Paulo, SP • Validado via GPS / PostGIS
+                  {addressReference ? "Ponto georreferenciado e validado via PostGIS" : "Validado via satélite e PostGIS"}
                 </p>
               </div>
             </div>

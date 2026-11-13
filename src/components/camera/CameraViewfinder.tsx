@@ -28,6 +28,7 @@ export interface CameraViewfinderProps {
   qrCodeLabel?: string | null;
   qrAnchor?: QrAnchorData | null;
   convergenceProgress?: number;
+  locationHint?: string;
   onRetryGps?: () => void;
   onPhotoProcessed: (photo: EdgeProcessedPhoto) => void;
 }
@@ -38,6 +39,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
   qrCodeLabel = null,
   qrAnchor = null,
   convergenceProgress = 25,
+  locationHint,
   onRetryGps,
   onPhotoProcessed,
 }) => {
@@ -282,7 +284,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
                     : "Calibrando GPS..."}
               </span>
               <span className="text-[9px] text-white/70 leading-none mt-0.5 font-mono">
-                {qrAnchor?.addressHint ? "Ponto Físico Monitorado" : "São Paulo, SP"}
+                {qrAnchor?.addressHint ? "Ponto Físico Monitorado" : (locationHint || "Ponto Georreferenciado")}
               </span>
             </div>
           </div>

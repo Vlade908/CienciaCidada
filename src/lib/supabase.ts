@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { reverseGeocode } from "@/lib/reverseGeocode";
 import type { LocationSource } from "@/hooks/useHighAccuracyGps";
 import type { WasteScale } from "@/components/camera/ScaleBottomSheet";
 
@@ -57,6 +58,7 @@ export interface SubmitReportResult {
   is_duplicate_device: boolean;
   message: string;
   photo_url: string;
+  address_reference?: string;
 }
 
 /**
@@ -273,8 +275,28 @@ export async function submitReportToDatabase(
     );
   }
 
+  // 5. Geocodificação Reversa para o Cluster (conforme arquitetura docs/02-arquitetura-free-to-paid-e-dados.md, Seção 2)
+  // Resolve o endereço real (Nominatim OSM / BigDataCloud) apenas 1 vez por cluster e atualiza o PostGIS
+  let resolvedAddress: string | undefined = undefined;
+  const rpcResult = rpcData as any;
+  if (safeLat != null && safeLng != null && rpcResult?.cluster_id) {
+    try {
+      const geo = await reverseGeocode(safeLat, safeLng);
+      if (geo?.displayName) {
+        resolvedAddress = geo.displayName;
+        await supabase
+          .from("incident_clusters")
+          .update({ address_reference: resolvedAddress })
+          .eq("id", rpcResult.cluster_id);
+      }
+    } catch (e) {
+      console.warn("[EcoCidadão] Falha silenciosa no reverse geocode:", e);
+    }
+  }
+
   return {
     ...(rpcData as Omit<SubmitReportResult, "photo_url">),
     photo_url: photoPublicUrl,
+    address_reference: resolvedAddress,
   };
 }

@@ -21,6 +21,7 @@ export interface ScaleBottomSheetProps {
   photo: EdgeProcessedPhoto | null;
   onSelectScale: (scale: WasteScale, tags: string[]) => void;
   isEcoCriticalDefault?: boolean;
+  locationLabel?: string;
 }
 
 interface ScaleOption {
@@ -57,6 +58,7 @@ export const ScaleBottomSheet: React.FC<ScaleBottomSheetProps> = ({
   photo,
   onSelectScale,
   isEcoCriticalDefault = false,
+  locationLabel,
 }) => {
   const [selectedScale, setSelectedScale] = useState<WasteScale>("MEDIUM");
   const [isEcoCritical, setIsEcoCritical] = useState(isEcoCriticalDefault);
@@ -124,7 +126,7 @@ export const ScaleBottomSheet: React.FC<ScaleBottomSheetProps> = ({
                 Foto capturada com sucesso
               </span>
               <span className="text-[11px] text-zinc-400 truncate">
-                São Paulo, SP · Ponto georreferenciado
+                {locationLabel || 'Ponto georreferenciado via satélite'}
               </span>
             </div>
           </div>
