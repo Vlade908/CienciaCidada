@@ -21,10 +21,16 @@ export interface HotspotFeatureProperties {
   priority_score: number;
   confirmations_count: number;
   first_reported_at: string;
+  last_reported_at?: string;
+  cleaned_at?: string;
   dominant_scale: 'SMALL' | 'MEDIUM' | 'LARGE';
+  sample_photo_url?: string;
   latest_photo_url?: string;
+  cleaned_photo_url?: string;
   status?: string;
   waste_tags?: string[];
+  is_eco_critical?: boolean;
+  address_reference?: string;
 }
 
 export type HotspotGeoJson = GeoJSON.FeatureCollection<
@@ -36,6 +42,7 @@ interface HotspotMapProps {
   hotspotsGeoJson?: HotspotGeoJson;
   selectedClusterId?: string | null;
   onSelectHotspot?: (clusterId: string) => void;
+  onInspectCluster?: (clusterId: string) => void;
   className?: string;
   initialCenter?: [number, number]; // [lng, lat]
   initialZoom?: number;
@@ -45,6 +52,7 @@ export function HotspotMap({
   hotspotsGeoJson,
   selectedClusterId,
   onSelectHotspot,
+  onInspectCluster,
   className = '',
   initialCenter = [-46.633308, -23.550520],
   initialZoom = 13,
@@ -230,34 +238,39 @@ export function HotspotMap({
             ? 'MÉDIO (Porta-malas)'
             : 'PEQUENO (Sacos)';
 
-        const photoHtml = props.latest_photo_url
-          ? `<div style="margin-bottom:8px;border-radius:6px;overflow:hidden;max-height:110px;background:#18181b;">
-               <img src="${props.latest_photo_url}" style="width:100%;height:110px;object-fit:cover;" alt="Foto do Entulho" />
-             </div>`
-          : '';
+        const resolvedPhotoUrl = props.sample_photo_url || props.latest_photo_url || (props.status === 'CLEANED' ? props.cleaned_photo_url : null) || 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=400&q=80';
+
+        const photoHtml = `
+          <div style="margin-bottom:8px;border-radius:6px;overflow:hidden;height:115px;background:#18181b;position:relative;">
+            <img src="${resolvedPhotoUrl}" style="width:100%;height:100%;object-fit:cover;" alt="Foto do Hotspot" onerror="this.src='https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=400&q=80'" />
+            ${props.status === 'CLEANED' ? '<div style="position:absolute;top:4px;right:4px;background:#059669;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;">RESOLVIDO</div>' : ''}
+          </div>
+        `;
 
         const popupContent = document.createElement('div');
         popupContent.className = 'text-xs font-sans p-1';
-        popupContent.style.minWidth = '210px';
+        popupContent.style.minWidth = '220px';
         popupContent.innerHTML = `
           ${photoHtml}
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <strong style="font-family:monospace;font-size:12px;">${props.protocol_code || 'ECO-NOVO'}</strong>
             <span style="font-size:10px;padding:2px 6px;border-radius:4px;border:1px solid currentColor;">
-              ${priorityLabel} (${Math.round(props.priority_score || 0)})
+              ${priorityLabel} (${Math.round(props.priority_score || 0)}%)
             </span>
           </div>
-          <div style="font-size:11px;margin-bottom:6px;opacity:0.85;">
+          <div style="font-size:11px;margin-bottom:8px;opacity:0.85;line-height:1.4;">
             Escala: <strong>${scaleLabel}</strong><br/>
-            Validação: <strong style="color:#059669;">${props.confirmations_count || 1} cidadãos</strong> unificados
+            Validação: <strong style="color:#059669;">${props.confirmations_count || 1} confirmações</strong>
           </div>
-          <button id="btn-inspect-cluster" style="width:100%;background:#059669;color:#ffffff;font-weight:600;padding:6px;border-radius:6px;border:none;cursor:pointer;font-size:11px;">
-            Inspecionar e Despachar
+          <button id="btn-inspect-cluster" style="width:100%;background:#059669;color:#ffffff;font-weight:600;padding:7px;border-radius:6px;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;gap:4px;transition:background 0.2s;">
+            🔍 Ver Detalhes do Foco
           </button>
         `;
 
         popupContent.querySelector('#btn-inspect-cluster')?.addEventListener('click', () => {
-          if (onSelectHotspot && props.cluster_id) {
+          if (onInspectCluster && props.cluster_id) {
+            onInspectCluster(props.cluster_id);
+          } else if (onSelectHotspot && props.cluster_id) {
             onSelectHotspot(props.cluster_id);
           }
         });
@@ -292,7 +305,7 @@ export function HotspotMap({
         mapRef.current = null;
       }
     };
-  }, [initialCenter, initialZoom, onSelectHotspot, mapStyleUrl]);
+  }, [initialCenter, initialZoom, onSelectHotspot, onInspectCluster, mapStyleUrl]);
 
   // 2. Atualização dos Dados GeoJSON
   useEffect(() => {
@@ -332,28 +345,28 @@ export function HotspotMap({
   const handleResetNorth = () => mapRef.current?.resetNorthPitch();
 
   return (
-    <div className={`relative w-full h-full overflow-hidden bg-[#f1f3f0] dark:bg-zinc-950 transition-colors ${className}`}>
+    <div className={`relative w-full h-full overflow-hidden bg-zinc-100 dark:bg-zinc-950 transition-colors ${className}`}>
       <div ref={mapContainerRef} className="w-full h-full" />
 
       {/* Controles Flutuantes com Suporte a Modo Claro/Escuro */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col space-y-1.5 bg-[#f8faf7]/95 dark:bg-zinc-950/80 backdrop-blur-md p-1 rounded-lg border border-stone-200 dark:border-zinc-800 shadow-md transition-colors">
+      <div className="absolute top-4 right-4 z-10 flex flex-col space-y-1.5 bg-white/95 dark:bg-zinc-950/85 backdrop-blur-md p-1 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-md transition-colors">
         <button
           onClick={handleZoomIn}
-          className="w-7 h-7 flex items-center justify-center rounded text-stone-700 dark:text-zinc-300 hover:text-stone-900 dark:hover:text-zinc-100 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors"
+          className="w-7 h-7 flex items-center justify-center rounded text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           title="Aproximar (+)"
         >
           <ZoomIn className="w-4 h-4" />
         </button>
         <button
           onClick={handleZoomOut}
-          className="w-7 h-7 flex items-center justify-center rounded text-stone-700 dark:text-zinc-300 hover:text-stone-900 dark:hover:text-zinc-100 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors"
+          className="w-7 h-7 flex items-center justify-center rounded text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           title="Afastar (-)"
         >
           <ZoomOut className="w-4 h-4" />
         </button>
         <button
           onClick={handleResetNorth}
-          className="w-7 h-7 flex items-center justify-center rounded text-stone-700 dark:text-zinc-300 hover:text-stone-900 dark:hover:text-zinc-100 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors"
+          className="w-7 h-7 flex items-center justify-center rounded text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           title="Orientar para o Norte"
         >
           <Compass className="w-4 h-4" />
@@ -361,21 +374,21 @@ export function HotspotMap({
       </div>
 
       {/* Legenda Térmica */}
-      <div className="absolute bottom-5 left-4 z-10 bg-[#f8faf7]/95 dark:bg-zinc-950/85 backdrop-blur-md px-3 py-2 rounded-lg border border-stone-200 dark:border-zinc-800/90 text-[11px] shadow-md flex items-center space-x-3 select-none transition-colors">
-        <span className="font-semibold text-stone-700 dark:text-zinc-300 uppercase tracking-wider text-[10px]">
+      <div className="absolute bottom-5 left-4 z-10 bg-white/95 dark:bg-zinc-950/85 backdrop-blur-md px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-800 text-[11px] shadow-md flex items-center space-x-3 select-none transition-colors">
+        <span className="font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider text-[10px]">
           Severidade:
         </span>
         <div className="flex items-center space-x-1">
           <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-xs" />
-          <span className="text-stone-700 dark:text-zinc-300 font-medium">Crítico (&ge;75)</span>
+          <span className="text-zinc-700 dark:text-zinc-300 font-medium">Crítico (&ge;75)</span>
         </div>
         <div className="flex items-center space-x-1">
           <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-xs" />
-          <span className="text-stone-700 dark:text-zinc-300 font-medium">Médio (40-74)</span>
+          <span className="text-zinc-700 dark:text-zinc-300 font-medium">Médio (40-74)</span>
         </div>
         <div className="flex items-center space-x-1">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs" />
-          <span className="text-stone-700 dark:text-zinc-300 font-medium">Baixo (&lt;40)</span>
+          <span className="text-zinc-700 dark:text-zinc-300 font-medium">Baixo (&lt;40)</span>
         </div>
       </div>
     </div>

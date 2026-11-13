@@ -219,7 +219,7 @@ export function ClusterDataTable({
                   <tr
                     key={cluster.id}
                     onClick={() => onSelectCluster && onSelectCluster(cluster)}
-                    className={`hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors cursor-pointer group/row ${
+                    className={`hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer group/row ${
                       isCleaned ? 'opacity-70 bg-zinc-50/30 dark:bg-zinc-950/20' : ''
                     }`}
                   >

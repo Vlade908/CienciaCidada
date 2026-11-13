@@ -234,14 +234,23 @@ export async function submitReportToDatabase(
 
   const photoPublicUrl = publicUrlData.publicUrl;
 
+  // Sanitização matemática para prevenir "Numeric field overflow" no PostgreSQL
+  // O tipo NUMERIC(6,2) de gps_accuracy_m aceita no máximo 9999.99 (PCs via IP/WiFi costumam emitir >20000m)
+  const safeLat = payload.lat != null ? Number(Number(payload.lat).toFixed(6)) : null;
+  const safeLng = payload.lng != null ? Number(Number(payload.lng).toFixed(6)) : null;
+  const rawAccuracy = Number(payload.accuracyMeters);
+  const safeAccuracy = isNaN(rawAccuracy)
+    ? 15.0
+    : Math.min(Math.max(Number(rawAccuracy.toFixed(2)), 1.0), 9999.0);
+
   // 4. Executa a RPC transacional de deduplicação espacial e visual no PostGIS
   const { data: rpcData, error: rpcError } = await supabase.rpc(
     "fn_submit_citizen_report",
     {
       p_tenant_slug: payload.tenantSlug || "piloto-universidade",
-      p_lat: payload.lat,
-      p_lng: payload.lng,
-      p_accuracy_m: payload.accuracyMeters,
+      p_lat: safeLat,
+      p_lng: safeLng,
+      p_accuracy_m: safeAccuracy,
       p_location_source: payload.locationSource,
       p_reported_scale: payload.reportedScale,
       p_waste_tags: payload.wasteTags,
