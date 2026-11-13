@@ -8,14 +8,12 @@ import { AdminKpiStrip } from '@/components/admin/AdminKpiStrip';
 import { OperationalCharts } from '@/components/admin/OperationalCharts';
 import { ClusterDataTable, ClusterRecord } from '@/components/admin/ClusterDataTable';
 import { ResolveCleanModal } from '@/components/admin/ResolveCleanModal';
+import { ClusterDetailDrawer } from '@/components/admin/ClusterDetailDrawer';
+import { PhotoPreviewModal } from '@/components/admin/PhotoPreviewModal';
 import { 
   Map as MapIcon, 
   Loader2, 
-  Plus, 
-  AlertCircle, 
-  Layers, 
   CheckCircle2, 
-  FileSpreadsheet,
   Download
 } from 'lucide-react';
 
@@ -85,7 +83,16 @@ export default function AdminDashboardPage() {
   const [clusters, setClusters] = useState<ClusterRecord[]>(SEED_CLUSTERS);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  
+  // Estado para o Modal de Resolução de Limpeza ("Antes e Depois")
   const [resolvingCluster, setResolvingCluster] = useState<ClusterRecord | null>(null);
+  
+  // Estado para a Gaveta de Detalhes do Agrupamento (Feedback 6)
+  const [selectedDetailCluster, setSelectedDetailCluster] = useState<ClusterRecord | null>(null);
+
+  // Estado para o Lightbox de Foto (Feedback 5)
+  const [previewPhoto, setPreviewPhoto] = useState<{ url: string; title: string } | null>(null);
+
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
 
   // Consulta dados reais do Supabase
@@ -135,7 +142,7 @@ export default function AdminDashboardPage() {
       c.status,
       c.dominant_scale,
       c.confirmations_count,
-      c.priority_score,
+      Math.round(Math.min(c.priority_score, 100)) + '%',
       `"${c.address_reference || ''}"`,
       `"${(c.waste_tags || []).join(';')}"`,
       c.first_reported_at,
@@ -159,6 +166,7 @@ export default function AdminDashboardPage() {
         municipalityName="São Paulo - SP (Piloto Universitário)"
         onRefresh={() => loadDashboardData(true)}
         isRefreshing={isRefreshing}
+        totalClusters={totalActiveClusters}
       />
 
       {/* 2. Faixa Superior de KPIs Executivos com Dados Dinâmicos */}
@@ -217,7 +225,7 @@ export default function AdminDashboardPage() {
               {/* Botão Exportar CSV */}
               <button
                 onClick={handleExportCSV}
-                className="px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium border border-zinc-200 dark:border-zinc-800 transition-colors flex items-center space-x-1.5 shadow-xs"
+                className="px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium border border-zinc-200 dark:border-zinc-800 transition-colors flex items-center space-x-1.5 shadow-2xs"
                 title="Exportar dados das ordens para relatório municipal"
               >
                 <Download className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
@@ -227,7 +235,7 @@ export default function AdminDashboardPage() {
               {/* Botão Ver no Mapa Global */}
               <Link
                 href="/admin/map"
-                className="px-3.5 py-1.5 rounded-lg bg-blue-600/15 hover:bg-blue-600/25 dark:bg-blue-600/20 dark:hover:bg-blue-600/30 text-blue-700 dark:text-blue-300 text-xs font-semibold border border-blue-500/30 dark:border-blue-500/40 transition-colors flex items-center space-x-1.5 shadow-xs"
+                className="px-3.5 py-1.5 rounded-lg bg-blue-600/15 hover:bg-blue-600/25 dark:bg-blue-600/20 dark:hover:bg-blue-600/30 text-blue-700 dark:text-blue-300 text-xs font-semibold border border-blue-500/30 dark:border-blue-500/40 transition-colors flex items-center space-x-1.5 shadow-2xs"
               >
                 <MapIcon className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                 <span>Abrir Mapa Geoespacial</span>
@@ -235,7 +243,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* Tabela de Dados Completa */}
+          {/* Tabela de Dados Completa com Drill-down e Ver Foto */}
           {isLoading ? (
             <div className="h-64 flex flex-col items-center justify-center space-y-2 bg-zinc-900/40 border border-zinc-800 rounded-xl text-zinc-400">
               <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
@@ -245,13 +253,32 @@ export default function AdminDashboardPage() {
             <ClusterDataTable
               clusters={clusters}
               onResolveClean={(cluster) => setResolvingCluster(cluster)}
+              onSelectCluster={(cluster) => setSelectedDetailCluster(cluster)}
+              onOpenPhotoPreview={(url, title) => setPreviewPhoto({ url, title })}
               onRefreshData={() => loadDashboardData(true)}
             />
           )}
         </div>
       </div>
 
-      {/* 4. Modal de Resolução de Limpeza ("Antes e Depois") */}
+      {/* 4. Gaveta de Detalhes do Cluster com Galeria de Cidadãos (Feedback 6) */}
+      <ClusterDetailDrawer
+        cluster={selectedDetailCluster}
+        isOpen={Boolean(selectedDetailCluster)}
+        onClose={() => setSelectedDetailCluster(null)}
+        onResolveClean={(cluster) => setResolvingCluster(cluster)}
+        onOpenPhotoPreview={(url, title) => setPreviewPhoto({ url, title })}
+      />
+
+      {/* 5. Lightbox Modal de Foto em Alta Resolução (Feedback 5) */}
+      <PhotoPreviewModal
+        isOpen={Boolean(previewPhoto)}
+        photoUrl={previewPhoto?.url || null}
+        title={previewPhoto?.title}
+        onClose={() => setPreviewPhoto(null)}
+      />
+
+      {/* 6. Modal de Resolução de Limpeza ("Antes e Depois") */}
       <ResolveCleanModal
         cluster={resolvingCluster}
         isOpen={Boolean(resolvingCluster)}
