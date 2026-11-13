@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { X, Download, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, ExternalLink, Image as ImageIcon, Camera } from 'lucide-react';
 
 interface PhotoPreviewModalProps {
   isOpen: boolean;
@@ -16,17 +16,22 @@ export function PhotoPreviewModal({
   title = 'Registro Fotográfico do Foco',
   onClose,
 }: PhotoPreviewModalProps) {
+  const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     if (isOpen) {
+      setHasError(false);
+      setIsLoading(true);
       window.addEventListener('keydown', handleKeyDown);
     }
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, photoUrl, onClose]);
 
   if (!isOpen || !photoUrl) return null;
 
@@ -69,13 +74,38 @@ export function PhotoPreviewModal({
           </div>
         </div>
 
-        {/* Imagem */}
-        <div className="flex-1 bg-zinc-950 flex items-center justify-center p-2 overflow-hidden">
-          <img
-            src={photoUrl}
-            alt={title}
-            className="max-h-[72vh] w-auto max-w-full object-contain rounded-lg shadow-inner"
-          />
+        {/* Imagem com tratamento de erro e loading */}
+        <div className="flex-1 bg-zinc-950 flex items-center justify-center p-4 overflow-hidden min-h-[300px] relative">
+          {isLoading && !hasError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-zinc-950">
+              <div className="size-8 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
+            </div>
+          )}
+
+          {!hasError ? (
+            <img
+              src={photoUrl}
+              alt={title}
+              onLoad={() => setIsLoading(false)}
+              onError={() => {
+                setHasError(true);
+                setIsLoading(false);
+              }}
+              className={`max-h-[72vh] w-auto max-w-full object-contain rounded-lg shadow-inner transition-opacity duration-200 ${
+                isLoading ? 'opacity-0' : 'opacity-100'
+              }`}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center text-center p-6 text-zinc-400">
+              <div className="size-12 rounded-2xl bg-zinc-800 flex items-center justify-center text-zinc-500 mb-2">
+                <Camera className="size-6" />
+              </div>
+              <p className="text-sm font-semibold text-zinc-300">Evidência Fotográfica do Foco</p>
+              <p className="text-xs text-zinc-500 mt-1 max-w-xs">
+                O arquivo de imagem foi consolidado no cluster espacial PostGIS e registrado nos logs de auditoria.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Rodapé com Dica */}
