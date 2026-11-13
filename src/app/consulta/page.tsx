@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { fetchProtocolDetails, ProtocolDetails } from '@/lib/supabase';
@@ -17,8 +17,52 @@ import {
   Moon, 
   FileText, 
   Sparkles,
-  Camera
+  Camera,
+  X,
+  ChevronRight,
+  MapPin,
+  CheckCircle2,
+  Truck,
+  Lightbulb,
+  Building2,
+  Check
 } from 'lucide-react';
+
+interface SeedCardPreview {
+  code: string;
+  title: string;
+  address: string;
+  status: 'OPEN' | 'TRIAGED' | 'IN_ROUTE' | 'CLEANED';
+  time: string;
+  hasPhoto?: boolean;
+}
+
+const DEMO_PREVIEWS: SeedCardPreview[] = [
+  {
+    code: 'ECO-2026-0004',
+    title: 'Descarte Irregular de Entulho',
+    address: 'Av. Paulista, 1200 • Bela Vista, SP',
+    status: 'CLEANED',
+    time: 'Hoje • 16:15',
+    hasPhoto: true,
+  },
+  {
+    code: 'ECO-2026-0003',
+    title: 'Poda e Restos em Calçada',
+    address: 'Rua Augusta, 450 • Consolação, SP',
+    status: 'IN_ROUTE',
+    time: 'Hoje • 14:20',
+    hasPhoto: true,
+  },
+  {
+    code: 'ECO-2026-0001',
+    title: 'Entulho Próximo ao Córrego Limpo',
+    address: 'Margem do Viaduto • Área de Preservação',
+    status: 'OPEN',
+    time: 'Hoje • 11:40',
+    hasPhoto: true,
+  },
+];
 
 function ConsultaContent() {
   const searchParams = useSearchParams();
@@ -32,8 +76,9 @@ function ConsultaContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [recentProtocols, setRecentProtocols] = useState<string[]>([]);
+  const [filterTab, setFilterTab] = useState<'ALL' | 'OPEN' | 'CLEANED'>('ALL');
 
-  // Carrega lista de chamados salvos no aparelho do cidadão
+  // Carrega lista de chamados salvos no aparelho do cidadão (LGPD)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -63,12 +108,11 @@ function ConsultaContent() {
       if (result) {
         setActiveDetails(result);
         setInputCode(cleanCode);
-        // Atualiza a URL sem recarregar a página
         router.replace(`/consulta?protocolo=${cleanCode}`);
       } else {
         setActiveDetails(null);
         setErrorMessage(
-          `Nenhum chamado encontrado com o código "${cleanCode}". Verifique se o formato está correto (Ex: ECO-2026-0001).`
+          `Nenhum chamado encontrado com o código "${cleanCode}". Verifique se o formato está correto (Ex: ECO-2026-0004).`
         );
       }
     } catch (err) {
@@ -92,193 +136,348 @@ function ConsultaContent() {
     handleSearch(inputCode);
   };
 
+  const handleClear = () => {
+    setInputCode('');
+    setActiveDetails(null);
+    setErrorMessage(null);
+    router.replace('/consulta');
+  };
+
+  // Filtragem dos cards de visualização
+  const filteredDemos = useMemo(() => {
+    if (filterTab === 'OPEN') {
+      return DEMO_PREVIEWS.filter((item) => item.status === 'OPEN' || item.status === 'IN_ROUTE' || item.status === 'TRIAGED');
+    }
+    if (filterTab === 'CLEANED') {
+      return DEMO_PREVIEWS.filter((item) => item.status === 'CLEANED');
+    }
+    return DEMO_PREVIEWS;
+  }, [filterTab]);
+
   return (
-    <div className="min-h-dvh w-full flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors">
+    <div className="min-h-dvh w-full flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors pb-24">
       
-      {/* HEADER DE TRANSPARÊNCIA */}
-      <header className="h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md px-4 flex items-center justify-between shrink-0 select-none">
+      {/* 1. HEADER / APP BAR MINIMALISTA STICKY (APPLE HIG / LINEAR STYLE DO STITCH) */}
+      <header className="sticky top-0 z-40 flex items-center justify-between px-4 py-3 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-200/60 dark:border-zinc-800/60 transition-all duration-300">
+        {/* Botão Voltar */}
         <Link
           href="/"
-          className="flex items-center space-x-1.5 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white text-xs font-semibold transition-colors"
+          className="flex size-10 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-800 active:scale-95 transition-all border border-zinc-200/60 dark:border-zinc-800/60"
+          aria-label="Voltar para Início"
+          title="Voltar para Início"
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Voltar ao Início</span>
+          <ArrowLeft className="size-4.5" />
         </Link>
 
-        <div className="flex items-center space-x-2">
-          <span className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1 font-mono">
-            <Layers className="w-3.5 h-3.5 text-emerald-500" />
-            EcoCidadão
-          </span>
-          <span className="text-[10px] font-mono text-zinc-400">Transparência</span>
+        {/* Centro: Título e Status Indicator */}
+        <div className="flex flex-col items-center">
+          <h1 className="text-sm font-bold text-zinc-900 dark:text-white tracking-tight">
+            Acompanhar Chamados
+          </h1>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="relative flex size-2">
+              <span className="animate-ping absolute inline-flex size-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full size-2 bg-emerald-500" />
+            </span>
+            <span className="text-[10px] font-medium tracking-wide text-zinc-500 dark:text-zinc-400 font-mono">
+              Sincronizado via Supabase
+            </span>
+          </div>
         </div>
 
-        {/* Botão de Alternância de Tema */}
+        {/* Ação Direita: Alternar Tema */}
         <button
           type="button"
           onClick={toggleTheme}
-          className="w-8 h-8 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center transition-colors"
-          title="Alternar modo claro / escuro"
-          aria-label="Alternar Tema"
+          className="flex size-10 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-800 active:scale-95 transition-all border border-zinc-200/60 dark:border-zinc-800/60"
+          title="Alternar tema"
+          aria-label="Alternar tema"
         >
           {theme === 'dark' ? (
-            <Sun className="w-4 h-4 text-amber-400" />
+            <Sun className="size-4 text-amber-400" />
           ) : (
-            <Moon className="w-4 h-4 text-zinc-700" />
+            <Moon className="size-4 text-zinc-700" />
           )}
         </button>
       </header>
 
-      {/* ÁREA PRINCIPAL */}
-      <main className="flex-1 overflow-y-auto px-4 py-6 max-w-md w-full mx-auto flex flex-col justify-between">
-        <div className="space-y-6">
-          
-          {/* SEÇÃO HERO SE NENHUM PROTOCOLO ESTIVER CARREGADO */}
-          {!activeDetails && (
-            <div className="text-center space-y-2 pt-2">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 mb-1">
-                <Search className="w-6 h-6 stroke-[2.2]" />
-              </div>
-              <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                Acompanhar Chamado
-              </h1>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-xs mx-auto leading-relaxed">
-                Consulte o andamento da limpeza urbana pelo número do protocolo gerado no envio da denúncia.
-              </p>
-            </div>
-          )}
+      {/* ÁREA DE CONTEÚDO PRINCIPAL */}
+      <main className="flex-1 px-4 pt-4 max-w-md w-full mx-auto space-y-5">
+        
+        {/* 2. BARRA DE BUSCA EM PILL FLUTUANTE DO STITCH */}
+        <section className="space-y-3">
+          <form onSubmit={handleSubmit} className="relative flex items-center">
+            <span className="absolute left-3.5 text-zinc-400 pointer-events-none flex items-center justify-center">
+              <Search className="size-4" />
+            </span>
 
-          {/* BARRA DE PESQUISA */}
-          <form onSubmit={handleSubmit} className="relative">
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={inputCode}
-                  onChange={(e) => setInputCode(e.target.value.toUpperCase())}
-                  placeholder="Ex: ECO-2026-0001"
-                  className="w-full pl-10 pr-3 py-3 text-sm font-mono uppercase bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-xs transition-all"
-                  autoFocus={!deepLinkedProtocol}
-                />
-              </div>
+            <input
+              type="text"
+              value={inputCode}
+              onChange={(e) => setInputCode(e.target.value.toUpperCase())}
+              placeholder="Buscar protocolo (ECO-XXXX)..."
+              className="w-full rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 py-3 pl-10 pr-10 text-xs sm:text-sm font-mono uppercase text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 shadow-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all"
+              autoFocus={!deepLinkedProtocol}
+            />
 
+            {inputCode ? (
+              <button
+                type="button"
+                onClick={handleClear}
+                aria-label="Limpar busca"
+                className="absolute right-3 flex size-6 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors"
+              >
+                <X className="size-3.5" />
+              </button>
+            ) : (
               <button
                 type="submit"
-                disabled={isLoading || !inputCode.trim()}
-                className="py-3 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-semibold transition-all shadow-xs shrink-0 flex items-center gap-1.5"
+                disabled={isLoading}
+                aria-label="Buscar"
+                className="absolute right-2 flex size-8 items-center justify-center rounded-full bg-emerald-600 hover:bg-emerald-500 text-white transition-all active:scale-95 disabled:opacity-50"
               >
                 {isLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="size-3.5 animate-spin" />
                 ) : (
-                  <span>Buscar</span>
+                  <ChevronRight className="size-4" />
                 )}
               </button>
-            </div>
+            )}
           </form>
 
-          {/* FEEDBACK DE ERRO */}
-          {errorMessage && (
-            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-700 dark:text-rose-300 text-xs flex items-start gap-2.5 animate-in fade-in">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
-              <div>
-                <p className="font-semibold">Protocolo não localizado</p>
-                <p className="text-[11px] mt-0.5 text-rose-600/90 dark:text-rose-300/90 leading-relaxed">
-                  {errorMessage}
-                </p>
-              </div>
+          {/* FILTROS RÁPIDOS (PILLS DESLIZANTES DO STITCH) */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 hide-scrollbar">
+            <button
+              type="button"
+              onClick={() => setFilterTab('ALL')}
+              className={`flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full px-3.5 text-xs font-semibold shadow-xs transition-all ${
+                filterTab === 'ALL'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+              }`}
+            >
+              <span>Todos</span>
+              <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono ${
+                filterTab === 'ALL' ? 'bg-white/20 text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300'
+              }`}>
+                3
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setFilterTab('OPEN')}
+              className={`flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full px-3.5 text-xs font-semibold shadow-xs transition-all ${
+                filterTab === 'OPEN'
+                  ? 'bg-amber-600 text-white'
+                  : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+              }`}
+            >
+              <span>Em Aberto</span>
+              <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono ${
+                filterTab === 'OPEN' ? 'bg-white/20 text-white' : 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
+              }`}>
+                2
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setFilterTab('CLEANED')}
+              className={`flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full px-3.5 text-xs font-semibold shadow-xs transition-all ${
+                filterTab === 'CLEANED'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+              }`}
+            >
+              {filterTab === 'CLEANED' && <Check className="size-3" />}
+              <span>Concluídos</span>
+              <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono ${
+                filterTab === 'CLEANED' ? 'bg-white/20 text-white' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+              }`}>
+                1
+              </span>
+            </button>
+          </div>
+        </section>
+
+        {/* FEEDBACK DE ERRO */}
+        {errorMessage && (
+          <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-rose-700 dark:text-rose-300 text-xs flex items-start gap-2.5 animate-in fade-in">
+            <AlertCircle className="size-4 shrink-0 mt-0.5 text-rose-600" />
+            <div>
+              <p className="font-semibold">Protocolo não localizado</p>
+              <p className="text-[11px] mt-0.5 text-rose-600/90 dark:text-rose-300/90 leading-relaxed">
+                {errorMessage}
+              </p>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* PROTOCOLOS RECENTES SALVOS NO APARELHO (1 TOQUE) */}
-          {!activeDetails && recentProtocols.length > 0 && (
-            <div className="space-y-2 pt-2">
-              <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                <span className="flex items-center gap-1 font-mono uppercase text-[10px]">
-                  <Clock className="w-3 h-3" /> Seus Chamados Recentes
-                </span>
-                <span className="text-[10px] text-zinc-400 font-mono">Salvo no aparelho</span>
-              </div>
+        {/* 3. VISÃO DETALHADA DO PROTOCOLO ATIVO (SE ENCONTRADO) */}
+        {activeDetails ? (
+          <ProtocolStatusCard
+            details={activeDetails}
+            onNewSearch={handleClear}
+          />
+        ) : null}
 
-              <div className="grid grid-cols-1 gap-2">
-                {recentProtocols.map((code) => (
-                  <button
-                    key={code}
-                    type="button"
-                    onClick={() => {
-                      setInputCode(code);
-                      handleSearch(code);
-                    }}
-                    className="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-emerald-500/40 text-left flex items-center justify-between group transition-all shadow-2xs"
-                  >
-                    <div className="flex items-center space-x-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-emerald-500 transition-colors">
-                        <FileText className="w-3.5 h-3.5" />
+        {/* 4. LISTA DE CHAMADOS RECENTES E CARDS DE DEMO (SE NÃO HOUVER PROTOCOLO ATIVO OU PARA NAVEGAR) */}
+        <section className="space-y-3 pt-1">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+              {activeDetails ? 'Outros Chamados para Consulta' : 'Chamados em Destaque'}
+            </h3>
+            <span className="text-xs font-mono text-zinc-400">
+              {filteredDemos.length} exibidos
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {filteredDemos.map((demo) => {
+              const isSelected = activeDetails?.protocol_code === demo.code;
+              const isDone = demo.status === 'CLEANED';
+              const isInProgress = demo.status === 'IN_ROUTE';
+
+              return (
+                <div
+                  key={demo.code}
+                  onClick={() => {
+                    setInputCode(demo.code);
+                    handleSearch(demo.code);
+                  }}
+                  className={`rounded-3xl p-4 transition-all cursor-pointer active:scale-[0.99] border ${
+                    isSelected
+                      ? 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/40 shadow-md ring-1 ring-emerald-500/30'
+                      : 'bg-white dark:bg-zinc-900/80 border-zinc-200/80 dark:border-zinc-800 shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md">
+                          {demo.code}
+                        </span>
+                        <span className="text-[11px] text-zinc-400 font-mono">
+                          {demo.time}
+                        </span>
                       </div>
-                      <span className="font-mono text-xs font-bold text-zinc-800 dark:text-zinc-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                        {code}
-                      </span>
+                      <h4 className="text-sm font-bold text-zinc-900 dark:text-white truncate">
+                        {demo.title}
+                      </h4>
+                      <p className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                        <MapPin className="size-3.5 text-zinc-400 shrink-0" />
+                        <span className="truncate">{demo.address}</span>
+                      </p>
                     </div>
 
-                    <span className="text-[10px] text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300 font-medium flex items-center gap-1">
-                      Ver status &rarr;
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+                    {/* Badge de Status */}
+                    {isDone ? (
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+                        <span className="size-1.5 rounded-full bg-emerald-500" />
+                        Concluído
+                      </span>
+                    ) : isInProgress ? (
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+                        <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        Em Rota
+                      </span>
+                    ) : (
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-blue-500/15 border border-blue-500/30 px-2.5 py-1 text-[11px] font-semibold text-blue-700 dark:text-blue-300">
+                        <span className="size-1.5 rounded-full bg-blue-500" />
+                        Aberto
+                      </span>
+                    )}
+                  </div>
 
-          {/* PROTOCOLO ENCONTRADO - RENDERIZA CARD COMPLETO */}
-          {activeDetails && (
-            <ProtocolStatusCard
-              details={activeDetails}
-              onNewSearch={() => {
-                setActiveDetails(null);
-                setInputCode('');
-                router.replace('/consulta');
-              }}
-            />
-          )}
+                  {/* Barra de Progresso ou Rodapé */}
+                  {isInProgress ? (
+                    <div className="mt-3.5 flex items-center gap-3 border-t border-zinc-100 dark:border-zinc-800/80 pt-3">
+                      <div className="h-1.5 flex-1 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+                        <div className="h-full w-2/3 rounded-full bg-amber-500" />
+                      </div>
+                      <span className="text-[11px] font-medium text-amber-700 dark:text-amber-400 font-mono">
+                        Caminhão a 1.2 km
+                      </span>
+                      <ChevronRight className="size-4 text-zinc-400 ml-auto" />
+                    </div>
+                  ) : isDone ? (
+                    <div className="mt-3 flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800/80 pt-2.5 text-xs text-zinc-500 dark:text-zinc-400">
+                      <span className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                        <CheckCircle2 className="size-3.5" />
+                        Foto Antes &amp; Depois verificada
+                      </span>
+                      <ChevronRight className="size-4 text-zinc-400" />
+                    </div>
+                  ) : (
+                    <div className="mt-3 flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800/80 pt-2.5 text-xs text-zinc-400">
+                      <span className="text-[11px] font-mono">
+                        Aguardando despacho de zeladoria
+                      </span>
+                      <ChevronRight className="size-4 text-zinc-400" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
-          {/* DICA DE EXEMPLOS PARA DEMONSTRAÇÃO */}
-          {!activeDetails && (
-            <div className="p-3.5 rounded-2xl bg-zinc-100/70 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 text-[11px] text-zinc-500 dark:text-zinc-400 space-y-1.5">
-              <span className="font-semibold text-zinc-700 dark:text-zinc-300 block">
-                Exemplos disponíveis para teste rápido:
-              </span>
-              <div className="flex flex-wrap gap-1.5 font-mono text-[10px]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInputCode('ECO-2026-0004');
-                    handleSearch('ECO-2026-0004');
-                  }}
-                  className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 hover:bg-emerald-500/20"
-                >
-                  ECO-2026-0004 (Limpo - Antes/Depois)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInputCode('ECO-2026-0001');
-                    handleSearch('ECO-2026-0001');
-                  }}
-                  className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25 hover:bg-amber-500/20"
-                >
-                  ECO-2026-0001 (Aberto - Crítico)
-                </button>
-              </div>
-            </div>
-          )}
+        {/* 5. DICA DE CIDADANIA / CALLOUT SUTIL APPLE HIG DO STITCH */}
+        <section className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4 flex items-start gap-3">
+          <Lightbulb className="size-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+              Você sabia?
+            </h4>
+            <p className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-relaxed">
+              Reportar com foto nítida e localização GPS reduz em até 40% o tempo de deslocamento das equipes municipais. Obrigado por cuidar da sua cidade!
+            </p>
+          </div>
+        </section>
 
-        </div>
-
-        {/* FOOTER INFORMATIVO */}
-        <footer className="pt-8 pb-2 text-center text-[10px] text-zinc-400 font-mono">
-          <span>EcoCidadão · Desafio 09 · Mapeamento Colaborativo de Resíduos</span>
-        </footer>
       </main>
+
+      {/* 6. FLOATING DOCK INFERIOR COMPATÍVEL COM O HOME */}
+      <div className="fixed bottom-4 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
+        <nav 
+          aria-label="Navegação inferior"
+          className="pointer-events-auto flex items-center justify-between w-full max-w-[360px] px-3 py-1.5 bg-zinc-950/85 dark:bg-zinc-900/90 backdrop-blur-xl rounded-full shadow-[0_12px_36px_rgba(0,0,0,0.3)] border border-white/15"
+        >
+          <Link
+            href="/"
+            className="flex flex-col items-center justify-center min-w-[50px] min-h-[44px] px-3 py-1 rounded-full text-zinc-300 hover:text-white font-medium text-[11px] transition-all"
+          >
+            <Layers className="size-4 mb-0.5" />
+            <span>Início</span>
+          </Link>
+
+          <Link
+            href="/reportar"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/40 transition-all active:scale-95"
+          >
+            <Camera className="size-4 stroke-[2.2]" />
+            <span>Reportar</span>
+          </Link>
+
+          <Link
+            href="/consulta"
+            className="flex flex-col items-center justify-center min-w-[50px] min-h-[44px] px-3 py-1 rounded-full bg-white/15 text-emerald-300 font-medium text-[11px] transition-all"
+            aria-current="page"
+          >
+            <Search className="size-4 mb-0.5 text-emerald-400" />
+            <span>Consultar</span>
+          </Link>
+
+          <Link
+            href="/admin"
+            className="flex flex-col items-center justify-center min-w-[50px] min-h-[44px] px-3 py-1 rounded-full text-zinc-300 hover:text-white font-medium text-[11px] transition-all"
+          >
+            <Building2 className="size-4 mb-0.5" />
+            <span>Gestão</span>
+          </Link>
+        </nav>
+      </div>
 
     </div>
   );
@@ -289,7 +488,7 @@ export default function ConsultaPage() {
     <Suspense
       fallback={
         <div className="min-h-dvh w-full flex flex-col items-center justify-center bg-zinc-950 text-zinc-400 gap-2">
-          <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+          <Loader2 className="size-6 animate-spin text-emerald-400" />
           <span className="text-xs font-mono">Carregando canal de transparência...</span>
         </div>
       }
