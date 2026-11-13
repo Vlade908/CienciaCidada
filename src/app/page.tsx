@@ -8,19 +8,21 @@ import { getQrAnchorByCode } from '@/lib/qrAnchors';
 import { 
   Camera, 
   Search, 
-  ArrowRight, 
-  ShieldCheck, 
-  CheckCircle2, 
+  Map, 
+  Building2, 
   Clock, 
   MapPin, 
   Layers, 
   Sun, 
   Moon, 
-  Building2,
-  FileText,
-  ChevronRight,
+  CheckCircle2, 
+  Truck, 
+  FileText, 
+  ChevronRight, 
   Sparkles,
-  Check
+  ArrowRight,
+  ShieldCheck,
+  Leaf
 } from 'lucide-react';
 
 function HomeContent() {
@@ -64,157 +66,164 @@ function HomeContent() {
   const reportUrl = activeQrAnchor ? `/reportar?qr=${activeQrAnchor.code}` : '/reportar';
 
   return (
-    <div className="min-h-dvh w-full flex flex-col bg-[#fafafa] dark:bg-[#09090b] text-zinc-900 dark:text-zinc-100 transition-colors selection:bg-emerald-500/20 selection:text-emerald-700 dark:selection:text-emerald-300">
+    <div className="min-h-dvh w-full flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors pb-24 selection:bg-emerald-500/20 selection:text-emerald-700 dark:selection:text-emerald-300">
       
-      {/* SUTIL GLOW DE TOPO NO DARK MODE */}
-      <div 
-        aria-hidden="true" 
-        className="pointer-events-none fixed inset-x-0 top-0 h-96 bg-[radial-gradient(ellipse_80%_40%_at_50%_-10%,rgba(16,185,129,0.06),transparent)] dark:bg-[radial-gradient(ellipse_80%_40%_at_50%_-10%,rgba(16,185,129,0.09),transparent)]" 
-      />
+      {/* SEÇÃO HERO IMERSIVO (Estilo Stitch Design System) */}
+      <section className="relative w-full bg-gradient-to-br from-emerald-900 via-emerald-950 to-zinc-950 text-white px-4 sm:px-6 pt-6 pb-8 overflow-hidden rounded-b-[2.5rem] shadow-xl">
+        {/* Luzes orgânicas de ambientação */}
+        <div className="absolute -top-12 -right-12 w-64 h-64 bg-emerald-400/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/2 -left-20 w-72 h-72 bg-teal-500/10 rounded-full blur-[70px] pointer-events-none" />
 
-      {/* HEADER ULTRA-CLEAN COM GLASSMORPHISM SUAVE */}
-      <header className="h-16 border-b border-zinc-200/60 dark:border-zinc-800/40 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between shrink-0 sticky top-0 z-30 transition-colors">
-        <div className="flex items-center space-x-2.5">
-          <div className="w-8 h-8 rounded-lg bg-zinc-900 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/60 flex items-center justify-center text-emerald-500 dark:text-emerald-400 shadow-xs">
-            <Layers className="w-4 h-4 stroke-[2]" />
+        <div className="max-w-md mx-auto relative z-10 space-y-6">
+          {/* Top Bar: Saudação & Badges Cívicos */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-white/80 font-medium">Olá, Cidadão 👋</span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md text-[11px] font-medium text-white shadow-xs border border-white/10">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Piloto SP
+                </span>
+              </div>
+              <div className="flex items-center gap-1 text-white/90 text-xs">
+                <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="font-medium tracking-wide">São Paulo, SP</span>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-1.5">
+              {/* Alternar Tema */}
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white transition-all active:scale-95 border border-white/10"
+                title="Alternar tema"
+                aria-label="Alternar tema"
+              >
+                {theme === 'dark' ? (
+                  <Sun className="w-4 h-4 text-amber-300" />
+                ) : (
+                  <Moon className="w-4 h-4 text-white" />
+                )}
+              </button>
+
+              {/* Atalho para Gestão */}
+              <Link
+                href="/admin"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white transition-all active:scale-95 border border-white/10"
+                title="Área restrita de gestão municipal"
+                aria-label="Acesso de Gestão"
+              >
+                <Building2 className="w-4 h-4 text-emerald-300" />
+              </Link>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <span className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 font-sans">
-              EcoCidadão
-            </span>
-            <span className="text-[10px] font-medium tracking-wide text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-900 px-2 py-0.5 rounded-full border border-zinc-200/60 dark:border-zinc-800/60">
-              Piloto SP
-            </span>
+
+          {/* Chamada Principal Stitch */}
+          <div className="space-y-1.5 pt-1">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight font-sans">
+              Onde é o próximo<br />
+              <span className="text-emerald-400">ponto de limpeza?</span>
+            </h1>
+            <p className="text-xs text-white/70 max-w-xs leading-relaxed">
+              Mapeie descarte irregular de resíduos em 5 segundos e acompanhe a rota de zeladoria em tempo real.
+            </p>
+          </div>
+
+          {/* Grid de 4 Ações Rápidas (Glassmorphism do Stitch) */}
+          <div className="grid grid-cols-4 gap-2 pt-1">
+            <Link
+              href={reportUrl}
+              className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-md text-white transition-all active:scale-95 border border-white/10 group shadow-xs"
+            >
+              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-300 mb-1.5 group-hover:scale-110 transition-transform">
+                <Camera className="w-5 h-5 stroke-[2]" />
+              </div>
+              <span className="text-[11px] font-semibold text-white tracking-tight">Reportar</span>
+            </Link>
+
+            <Link
+              href="/consulta"
+              className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-md text-white transition-all active:scale-95 border border-white/10 group shadow-xs"
+            >
+              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white mb-1.5 group-hover:scale-110 transition-transform">
+                <Search className="w-5 h-5 stroke-[1.8]" />
+              </div>
+              <span className="text-[11px] font-semibold text-white tracking-tight">Consultar</span>
+            </Link>
+
+            <Link
+              href="/admin/map"
+              className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-md text-white transition-all active:scale-95 border border-white/10 group shadow-xs"
+            >
+              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white mb-1.5 group-hover:scale-110 transition-transform">
+                <Map className="w-5 h-5 stroke-[1.8]" />
+              </div>
+              <span className="text-[11px] font-semibold text-white tracking-tight">Mapa</span>
+            </Link>
+
+            <Link
+              href="/admin"
+              className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-md text-white transition-all active:scale-95 border border-white/10 group shadow-xs"
+            >
+              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white mb-1.5 group-hover:scale-110 transition-transform">
+                <Building2 className="w-5 h-5 stroke-[1.8]" />
+              </div>
+              <span className="text-[11px] font-semibold text-white tracking-tight">Gestão</span>
+            </Link>
           </div>
         </div>
+      </section>
 
-        <div className="flex items-center space-x-1.5">
-          {/* Alternância de Modo Claro / Escuro */}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="w-8 h-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 flex items-center justify-center transition-colors"
-            title="Alternar tema"
-            aria-label="Alternar Tema"
-          >
-            {theme === 'dark' ? (
-              <Sun className="w-4 h-4 text-amber-400" />
-            ) : (
-              <Moon className="w-4 h-4 text-zinc-600" />
-            )}
-          </button>
+      {/* CONTEÚDO PRINCIPAL (Cards de Zeladoria) */}
+      <main className="max-w-md w-full mx-auto px-4 pt-6 flex flex-col space-y-6">
 
-          {/* Link Discreto para Área do Gestor */}
-          <Link
-            href="/admin"
-            className="flex items-center space-x-1 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 px-2.5 py-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
-            title="Painel operacional para servidores e fiscais"
-          >
-            <Building2 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Gestão</span>
-          </Link>
-        </div>
-      </header>
-
-      {/* ÁREA CENTRAL (Mobile-First / Respiro Generoso) */}
-      <main className="flex-1 w-full max-w-md mx-auto px-4 sm:px-0 py-8 flex flex-col space-y-8 relative z-10">
-
-        {/* ALERTA DE DETECÇÃO DE PLACA FÍSICA QR CODE (SE PRESENTE) */}
+        {/* ALERTA DE DETECÇÃO DE PLACA QR CODE (SE PRESENTE) */}
         {activeQrAnchor && (
-          <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-950/20 p-4 shadow-xs animate-in fade-in duration-300">
+          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 dark:bg-emerald-950/30 p-4 shadow-xs animate-in fade-in">
             <div className="flex items-start space-x-3">
-              <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5">
+              <div className="p-2 rounded-xl bg-emerald-600 text-white shrink-0 mt-0.5">
                 <MapPin className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2">
-                  <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 font-mono">
-                    Placa {activeQrAnchor.code}
+                  <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 font-mono">
+                    Placa Identificada: {activeQrAnchor.code}
                   </span>
-                  <span className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.2 rounded font-medium">
+                  <span className="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded-full font-bold">
                     GPS Fixado
                   </span>
                 </div>
-                <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1 leading-relaxed">
+                <p className="text-xs text-zinc-700 dark:text-zinc-300 mt-1">
                   {activeQrAnchor.addressHint}
                 </p>
+                <Link
+                  href={reportUrl}
+                  className="inline-flex items-center space-x-1 text-xs font-bold text-emerald-700 dark:text-emerald-400 mt-2 hover:underline"
+                >
+                  <span>Abrir Câmera nesta placa</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
             </div>
           </div>
         )}
 
-        {/* HERO REFINADO: TIPOGRAFIA PRECISA & WHITESPACE */}
-        <section className="text-center space-y-2.5 pt-2">
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 leading-tight">
-            Sua cidade mais limpa começa com você.
-          </h1>
-          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 max-w-sm mx-auto leading-relaxed">
-            Fotografe pontos de descarte irregular em poucos segundos. O sistema unifica os relatos do bairro e direciona os caminhões de coleta.
-          </p>
-        </section>
-
-        {/* THUMB ZONE: CALLS-TO-ACTION REFINADOS (MATTE ENTERPRISE) */}
-        <section className="space-y-3 pt-1">
-          {/* BOTÃO PRINCIPAL: ACABAMENTO FOSCO PREMIUM (Estilo Apple / Linear) */}
-          <Link
-            href={reportUrl}
-            className="group relative flex items-center justify-between w-full p-4 sm:p-5 rounded-2xl bg-zinc-900 hover:bg-zinc-850 dark:bg-zinc-900/90 dark:hover:bg-zinc-850 text-white border border-zinc-800 dark:border-zinc-800/80 hover:border-zinc-700/80 shadow-md shadow-zinc-950/15 active:scale-[0.985] transition-all duration-200"
-          >
-            <div className="flex items-center space-x-3.5">
-              <div className="w-11 h-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-emerald-400 group-hover:text-emerald-300 transition-colors shrink-0 shadow-inner">
-                <Camera className="w-5 h-5 stroke-[2]" />
-              </div>
-              <div className="text-left">
-                <span className="block text-sm sm:text-base font-semibold tracking-tight text-white">
-                  {activeQrAnchor ? 'Registrar Foco Nesta Placa' : 'Registrar Novo Descarte'}
-                </span>
-                <span className="block text-xs text-zinc-400 font-normal">
-                  Câmera rápida · Sem cadastro · 100% Anônimo
-                </span>
-              </div>
-            </div>
-
-            <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-zinc-400 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0">
-              <ArrowRight className="w-4 h-4" />
-            </div>
-          </Link>
-
-          {/* BOTÃO SECUNDÁRIO: CARD TRANSLÚCIDO E DISCRETO */}
-          <Link
-            href="/consulta"
-            className="flex items-center justify-between w-full p-3.5 sm:p-4 rounded-xl bg-white/80 hover:bg-white dark:bg-zinc-900/30 dark:hover:bg-zinc-900/60 border border-zinc-200/70 hover:border-zinc-300 dark:border-zinc-800/50 dark:hover:border-zinc-700/60 text-zinc-800 dark:text-zinc-200 active:scale-[0.985] transition-all duration-200 shadow-xs group"
-          >
-            <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800/80 flex items-center justify-center text-zinc-500 dark:text-zinc-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors shrink-0">
-                <Search className="w-4 h-4 stroke-[1.8]" />
-              </div>
-              <div className="text-left">
-                <span className="block text-xs sm:text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                  Acompanhar Chamados
-                </span>
-                <span className="block text-[11px] text-zinc-500 dark:text-zinc-400">
-                  Linha do tempo e comprovação Antes vs. Depois
-                </span>
-              </div>
-            </div>
-
-            <ChevronRight className="w-4 h-4 text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-200 group-hover:translate-x-0.5 transition-all" />
-          </Link>
-        </section>
-
-        {/* SEÇÃO: MEUS CHAMADOS RECENTES (MINIMALISTA & FLUIDO) */}
-        <section className="space-y-2.5 pt-1">
+        {/* SEÇÃO: MEUS CHAMADOS RECENTES (Estilo Stitch Card Feed) */}
+        <section className="space-y-3">
           <div className="flex items-center justify-between px-1">
-            <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500 flex items-center gap-1.5 font-mono">
-              <Clock className="w-3.5 h-3.5" />
-              <span>Meus Chamados Recentes</span>
-            </span>
+            <div className="flex items-center space-x-1.5">
+              <Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <h2 className="text-sm font-bold text-zinc-900 dark:text-white">
+                Meus Chamados Recentes
+              </h2>
+            </div>
 
             {mounted && savedProtocols.length > 0 && (
               <button
                 type="button"
                 onClick={handleClearHistory}
-                className="text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                className="text-xs text-zinc-400 hover:text-rose-500 transition-colors"
                 title="Limpar histórico deste navegador"
               >
                 Limpar
@@ -223,120 +232,128 @@ function HomeContent() {
           </div>
 
           {mounted && savedProtocols.length > 0 ? (
-            <div className="space-y-1.5">
+            <div className="space-y-2.5">
               {savedProtocols.map((code) => (
                 <Link
                   key={code}
                   href={`/consulta?protocolo=${code}`}
-                  className="flex items-center justify-between p-3 rounded-xl bg-white/70 hover:bg-white dark:bg-zinc-900/25 dark:hover:bg-zinc-900/60 border border-zinc-200/60 hover:border-zinc-300 dark:border-zinc-800/40 dark:hover:border-zinc-700/50 transition-all shadow-xs group"
+                  className="w-full bg-white dark:bg-zinc-900 rounded-2xl p-4 shadow-sm hover:shadow-md border border-zinc-200/80 dark:border-zinc-800 flex items-center gap-3 transition-all cursor-pointer group"
                 >
-                  <div className="flex items-center space-x-2.5">
-                    <div className="w-7 h-7 rounded-md bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                      <FileText className="w-3.5 h-3.5" />
-                    </div>
-                    <div>
-                      <span className="text-xs font-mono font-medium text-zinc-800 dark:text-zinc-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                        {code}
-                      </span>
-                      <span className="block text-[10px] text-zinc-400 dark:text-zinc-500">
-                        Clique para ver a evolução
-                      </span>
-                    </div>
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <FileText className="w-6 h-6 stroke-[1.8]" />
                   </div>
 
-                  <span className="text-[11px] font-medium text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-200 flex items-center gap-0.5 transition-colors">
-                    <span>Detalhes</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1 mb-0.5">
+                      <span className="text-xs font-mono font-bold text-zinc-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                        {code}
+                      </span>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                        Acompanhar
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                      Clique para ver linha do tempo e Antes vs. Depois
+                    </p>
+                  </div>
+
+                  <ChevronRight className="w-4 h-4 text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-200 group-hover:translate-x-0.5 transition-all" />
                 </Link>
               ))}
             </div>
           ) : (
-            /* EMPTY STATE MINIMALISTA & ACOLHEDOR (Sem caixas pesadas) */
-            <div className="py-7 px-4 rounded-2xl border border-dashed border-zinc-200/80 dark:border-zinc-800/60 text-center space-y-2">
-              <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-900 text-zinc-400 flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500/80" />
+            /* EMPTY STATE ESTILO STITCH */
+            <div className="p-6 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/40 text-center space-y-3">
+              <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-5 h-5" />
               </div>
-              <div className="space-y-0.5">
-                <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                  Nenhum chamado salvo ainda
-                </p>
-                <p className="text-[11px] text-zinc-400 dark:text-zinc-500 max-w-xs mx-auto leading-relaxed">
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  Nenhum chamado no seu histórico
+                </h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-xs mx-auto leading-relaxed">
                   Quando você registrar um foco de resíduos, ele aparecerá aqui para você acompanhar até a limpeza.
                 </p>
               </div>
+              <Link
+                href={reportUrl}
+                className="inline-flex items-center space-x-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300"
+              >
+                <span>Fazer meu primeiro registro</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
           )}
         </section>
 
-        {/* COMO FUNCIONA: TIMELINE ABERTA E ELEGANTE (Sem blocos cinzas) */}
-        <section className="pt-2 border-t border-zinc-200/60 dark:border-zinc-800/40 space-y-4">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-mono">
-            Como funciona a zeladoria
-          </span>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="flex items-start space-x-3 sm:flex-col sm:space-x-0 sm:space-y-2">
-              <div className="w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 text-[11px] font-semibold flex items-center justify-center shrink-0 border border-zinc-200/60 dark:border-zinc-800/60">
-                1
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
-                  Fotografe o descarte
-                </p>
-                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
-                  Aponte a câmera e selecione o tamanho do entulho em 1 toque.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-3 sm:flex-col sm:space-x-0 sm:space-y-2">
-              <div className="w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 text-[11px] font-semibold flex items-center justify-center shrink-0 border border-zinc-200/60 dark:border-zinc-800/60">
-                2
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
-                  Unificação espacial
-                </p>
-                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
-                  O algoritmo agrupa relatos vizinhos e gera uma ordem prioritária.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-3 sm:flex-col sm:space-x-0 sm:space-y-2">
-              <div className="w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 text-[11px] font-semibold flex items-center justify-center shrink-0 border border-zinc-200/60 dark:border-zinc-800/60">
-                3
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
-                  Limpeza comprovada
-                </p>
-                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
-                  A equipe limpa o local e publica a foto do Antes vs. Depois.
-                </p>
-              </div>
-            </div>
+        {/* CARD BANNER ECO-CONSCIENTE DE DESTAQUE (Diretamente do Stitch) */}
+        <section className="w-full rounded-2xl bg-gradient-to-r from-emerald-800 to-teal-700 p-4 sm:p-5 text-white flex items-center justify-between shadow-md relative overflow-hidden">
+          <div className="relative z-10 max-w-[75%] space-y-1">
+            <span className="text-[10px] uppercase tracking-wider text-emerald-200 font-bold bg-white/10 px-2 py-0.5 rounded-full inline-block">
+              Zeladoria Urbana Coletiva
+            </span>
+            <h3 className="text-sm sm:text-base font-bold text-white">
+              Ciência Cidadã por uma Cidade Limpa
+            </h3>
+            <p className="text-xs text-white/80 leading-relaxed">
+              Cada foto enviada alimenta o algoritmo do PostGIS que otimiza a rota dos caminhões da prefeitura.
+            </p>
           </div>
+          <div className="relative z-10 w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-inner shrink-0">
+            <Leaf className="w-6 h-6 text-emerald-200" />
+          </div>
+          <div className="absolute -right-6 -bottom-6 w-28 h-28 bg-white/10 rounded-full blur-xl pointer-events-none" />
         </section>
 
-        {/* PRIVACIDADE E ANONIMATO */}
-        <div className="flex items-center justify-center space-x-1.5 text-[11px] text-zinc-400 dark:text-zinc-500 pt-2 pb-4">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500/80" />
-          <span>Privacidade garantida · Nenhum dado pessoal coletado</span>
+        {/* BADGE DE PRIVACIDADE E CONFIANÇA */}
+        <div className="flex items-center justify-center space-x-1.5 text-xs text-zinc-500 dark:text-zinc-400 pt-1 pb-4">
+          <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          <span>Privacidade garantida pela LGPD · 100% Anônimo</span>
         </div>
 
       </main>
 
-      {/* FOOTER DISCRETO */}
-      <footer className="border-t border-zinc-200/50 dark:border-zinc-800/30 py-5 px-4 text-center text-[11px] text-zinc-400 dark:text-zinc-500 space-y-1">
-        <p>EcoCidadão · Inteligência Urbana & Ciência Cidadã</p>
-        <p>
-          <Link href="/admin" className="text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
-            Painel da Concessionária e Prefeitura ➔
+      {/* FLOATING DOCK INFERIOR (Mobile Tab Bar do Stitch) */}
+      <div className="fixed bottom-4 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
+        <nav 
+          aria-label="Navegação inferior"
+          className="pointer-events-auto flex items-center justify-between w-full max-w-[360px] px-3 py-1.5 bg-zinc-950/85 dark:bg-zinc-900/90 backdrop-blur-xl rounded-full shadow-[0_12px_36px_rgba(0,0,0,0.3)] border border-white/15"
+        >
+          <Link
+            href="/"
+            className="flex flex-col items-center justify-center min-w-[50px] min-h-[44px] px-3 py-1 rounded-full bg-white/15 text-emerald-300 font-medium text-[11px] transition-all"
+            aria-current="page"
+          >
+            <Layers className="w-4 h-4 mb-0.5" />
+            <span>Início</span>
           </Link>
-        </p>
-      </footer>
+
+          <Link
+            href={reportUrl}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/40 transition-all active:scale-95"
+          >
+            <Camera className="w-4 h-4 stroke-[2.2]" />
+            <span>Reportar</span>
+          </Link>
+
+          <Link
+            href="/consulta"
+            className="flex flex-col items-center justify-center min-w-[50px] min-h-[44px] px-3 py-1 rounded-full text-zinc-300 hover:text-white font-medium text-[11px] transition-all"
+          >
+            <Search className="w-4 h-4 mb-0.5" />
+            <span>Consultar</span>
+          </Link>
+
+          <Link
+            href="/admin"
+            className="flex flex-col items-center justify-center min-w-[50px] min-h-[44px] px-3 py-1 rounded-full text-zinc-300 hover:text-white font-medium text-[11px] transition-all"
+          >
+            <Building2 className="w-4 h-4 mb-0.5" />
+            <span>Gestão</span>
+          </Link>
+        </nav>
+      </div>
 
     </div>
   );
@@ -344,7 +361,7 @@ function HomeContent() {
 
 export default function HomePage() {
   return (
-    <Suspense fallback={<div className="min-h-dvh bg-zinc-50 dark:bg-zinc-950" />}>
+    <Suspense fallback={<div className="min-h-dvh bg-zinc-950" />}>
       <HomeContent />
     </Suspense>
   );
