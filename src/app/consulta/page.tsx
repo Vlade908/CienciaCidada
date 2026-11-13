@@ -102,7 +102,7 @@ function ConsultaContent() {
           className="flex items-center space-x-1.5 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white text-xs font-semibold transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Voltar para a Câmera</span>
+          <span>Voltar ao Início</span>
         </Link>
 
         <div className="flex items-center space-x-2">

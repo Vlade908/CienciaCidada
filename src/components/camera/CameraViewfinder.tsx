@@ -11,6 +11,7 @@ import {
   Sparkles,
   RefreshCcw,
   Search,
+  ArrowLeft,
 } from "lucide-react";
 import { GpsStatusPill } from "@/components/camera/GpsStatusPill";
 import { QrAnchorBanner } from "@/components/camera/QrAnchorBanner";
@@ -230,6 +231,15 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
       {/* HUD SUPERIOR */}
       <header className="relative z-20 flex flex-col items-center gap-2 px-4 pt-[max(1rem,env(safe-area-inset-top))]">
         <div className="flex w-full max-w-sm items-center justify-between gap-2">
+          <Link
+            href="/"
+            className="flex items-center justify-center size-8 rounded-full bg-zinc-900/85 hover:bg-zinc-800 border border-white/15 text-zinc-100 backdrop-blur-md active:scale-95 transition-all shadow-md shrink-0"
+            title="Voltar para a Central do Cidadão"
+            aria-label="Voltar para a Central"
+          >
+            <ArrowLeft className="size-4" />
+          </Link>
+
           <GpsStatusPill
             state={gpsState}
             accuracyMeters={accuracyMeters}
