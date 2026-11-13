@@ -48,14 +48,17 @@ interface HotspotMapProps {
   initialZoom?: number;
 }
 
+const DEFAULT_CENTER: [number, number] = [-46.633308, -23.550520];
+const DEFAULT_ZOOM = 13;
+
 export function HotspotMap({
   hotspotsGeoJson,
   selectedClusterId,
   onSelectHotspot,
   onInspectCluster,
   className = '',
-  initialCenter = [-46.633308, -23.550520],
-  initialZoom = 13,
+  initialCenter = DEFAULT_CENTER,
+  initialZoom = DEFAULT_ZOOM,
 }: HotspotMapProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -68,7 +71,20 @@ export function HotspotMap({
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const popupRef = useRef<Popup | null>(null);
 
-  // 1. Inicialização do Mapa
+  // Armazena callbacks e configurações em refs para imunizar o mapa contra remontagens
+  const onSelectHotspotRef = useRef(onSelectHotspot);
+  onSelectHotspotRef.current = onSelectHotspot;
+
+  const onInspectClusterRef = useRef(onInspectCluster);
+  onInspectClusterRef.current = onInspectCluster;
+
+  const initialCenterRef = useRef(initialCenter);
+  const initialZoomRef = useRef(initialZoom);
+
+  // Evita duplo flyTo quando o próprio clique no mapa já animou a câmera
+  const lastClickedClusterIdRef = useRef<string | null>(null);
+
+  // 1. Inicialização Estável do Mapa (Instância única por tema)
   useEffect(() => {
     let isMounted = true;
     if (!mapContainerRef.current) return;
@@ -85,8 +101,8 @@ export function HotspotMap({
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
       style: mapStyleUrl,
-      center: initialCenter,
-      zoom: initialZoom,
+      center: initialCenterRef.current,
+      zoom: initialZoomRef.current,
       attributionControl: false,
     });
 
@@ -207,21 +223,27 @@ export function HotspotMap({
         map.getCanvas().style.cursor = '';
       });
 
+      // Transição suave ao clicar num ponto partindo estritamente da câmera atual
       map.on('click', 'hotspots-circles', (e) => {
         if (!e.features || !e.features[0]) return;
         const feature = e.features[0];
         const props = feature.properties as unknown as HotspotFeatureProperties;
         const coordinates = (feature.geometry as GeoJSON.Point).coordinates.slice() as [number, number];
 
+        // Marca que o clique partiu deste mapa para não duplicar flyTo no efeito de sincronização externa
+        lastClickedClusterIdRef.current = props.cluster_id;
+
+        // Voo suave partindo da posição e zoom atuais
         map.flyTo({
           center: coordinates,
           zoom: Math.max(map.getZoom(), 15),
           essential: true,
           speed: 1.2,
+          curve: 1.42,
         });
 
-        if (onSelectHotspot && props.cluster_id) {
-          onSelectHotspot(props.cluster_id);
+        if (onSelectHotspotRef.current && props.cluster_id) {
+          onSelectHotspotRef.current(props.cluster_id);
         }
 
         if (popupRef.current) popupRef.current.remove();
@@ -268,13 +290,14 @@ export function HotspotMap({
         `;
 
         popupContent.querySelector('#btn-inspect-cluster')?.addEventListener('click', () => {
-          if (onInspectCluster && props.cluster_id) {
-            onInspectCluster(props.cluster_id);
-          } else if (onSelectHotspot && props.cluster_id) {
-            onSelectHotspot(props.cluster_id);
+          if (onInspectClusterRef.current && props.cluster_id) {
+            onInspectClusterRef.current(props.cluster_id);
+          } else if (onSelectHotspotRef.current && props.cluster_id) {
+            onSelectHotspotRef.current(props.cluster_id);
           }
         });
 
+        // Popup nativo MapLibre gerenciado diretamente no DOM, sem causar re-render do React
         popupRef.current = new maplibregl.Popup({
           closeButton: true,
           closeOnClick: false,
@@ -305,9 +328,9 @@ export function HotspotMap({
         mapRef.current = null;
       }
     };
-  }, [initialCenter, initialZoom, onSelectHotspot, onInspectCluster, mapStyleUrl]);
+  }, [mapStyleUrl]);
 
-  // 2. Atualização dos Dados GeoJSON
+  // 2. Atualização dos Dados GeoJSON sem afetar a câmera
   useEffect(() => {
     if (!mapRef.current || !isMapLoaded || !hotspotsGeoJson) return;
 
@@ -321,9 +344,15 @@ export function HotspotMap({
     }
   }, [hotspotsGeoJson, isMapLoaded]);
 
-  // 3. Centralização ao Selecionar um Cluster
+  // 3. Centralização externa ao Selecionar um Cluster (por URL, deep link ou tabela externa)
   useEffect(() => {
     if (!mapRef.current || !selectedClusterId || !hotspotsGeoJson) return;
+
+    // Se a seleção recente partiu de um clique direto no próprio mapa, o flyTo já ocorreu suavemente
+    if (lastClickedClusterIdRef.current === selectedClusterId) {
+      lastClickedClusterIdRef.current = null;
+      return;
+    }
 
     const targetFeature = hotspotsGeoJson.features.find(
       (f) => f.properties?.cluster_id === selectedClusterId
@@ -333,8 +362,9 @@ export function HotspotMap({
       const coords = targetFeature.geometry.coordinates as [number, number];
       mapRef.current.flyTo({
         center: coords,
-        zoom: 16,
-        speed: 1.4,
+        zoom: Math.max(mapRef.current.getZoom(), 15),
+        speed: 1.2,
+        curve: 1.42,
         essential: true,
       });
     }

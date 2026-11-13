@@ -70,6 +70,9 @@ const SEED_FALLBACK_GEOJSON: HotspotGeoJson = {
   ],
 };
 
+const DEFAULT_MAP_CENTER: [number, number] = [-46.633308, -23.550520];
+const DEFAULT_MAP_ZOOM = 13.5;
+
 function MapViewContent() {
   const searchParams = useSearchParams();
   const deepLinkedClusterId = searchParams.get('clusterId');
@@ -212,10 +215,10 @@ function MapViewContent() {
         <HotspotMap
           hotspotsGeoJson={hotspotsData}
           selectedClusterId={selectedClusterId}
-          onSelectHotspot={(id) => setSelectedClusterId(id)}
+          onSelectHotspot={setSelectedClusterId}
           onInspectCluster={handleInspectCluster}
-          initialCenter={[-46.633308, -23.550520]}
-          initialZoom={13.5}
+          initialCenter={DEFAULT_MAP_CENTER}
+          initialZoom={DEFAULT_MAP_ZOOM}
         />
 
         {fetchError && (
