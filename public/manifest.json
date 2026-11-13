@@ -1,10 +1,35 @@
 {
-  "name": "EcoCidadão",
+  "name": "EcoCidadão - Zeladoria Urbana",
   "short_name": "EcoCidadão",
-  "description": "Ciência Cidadã para monitoramento de descarte irregular",
+  "description": "Ciência Cidadã e Inteligência Geoespacial para Zeladoria Urbana Colaborativa",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#09090b",
-  "theme_color": "#09090b",
-  "orientation": "portrait"
+  "theme_color": "#10b981",
+  "lang": "pt-BR",
+  "categories": [
+    "utilities",
+    "government"
+  ],
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
 }

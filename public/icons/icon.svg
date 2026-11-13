@@ -1,0 +1,29 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with dark zinc #09090b -->
+  <rect width="512" height="512" rx="112" fill="#09090b"/>
+  
+  <!-- Subtle circular ambient glow -->
+  <circle cx="256" cy="256" r="180" fill="url(#glow)" opacity="0.2" />
+
+  <!-- EcoCidadão Geometric Civic Glyph (Centered in safe-zone) -->
+  <g transform="translate(136, 136)">
+    <!-- Top-Left square -->
+    <rect x="16" y="16" width="96" height="96" rx="24" fill="#10b981" />
+    <!-- Top-Right square (Semi-translucent) -->
+    <rect x="128" y="16" width="96" height="96" rx="24" fill="#10b981" opacity="0.45" />
+    <!-- Bottom-Left square (Semi-translucent) -->
+    <rect x="16" y="128" width="96" height="96" rx="24" fill="#10b981" opacity="0.45" />
+    <!-- Bottom-Right vibrant leaf square -->
+    <rect x="128" y="128" width="96" height="96" rx="24" fill="#7ed348" />
+    
+    <!-- Central dynamic eco leaf accent -->
+    <path d="M120 70 C170 70, 190 120, 190 170 C140 170, 120 120, 120 70 Z" fill="#ffffff" opacity="0.9" />
+  </g>
+
+  <defs>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5" fx="0.5" fy="0.5">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="1" />
+      <stop offset="100%" stop-color="#09090b" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+</svg>
