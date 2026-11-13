@@ -1,0 +1,104 @@
+name: CI/CD Pipeline - EcoCidadão (Vercel)
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+  pull_request:
+    branches:
+      - main
+      - staging
+
+jobs:
+  # ===========================================================================
+  # ETAPA 1: LINT, CHECAGEM DE TIPOS TYPESCRIPT E BUILD DE VALIDAÇÃO
+  # ===========================================================================
+  quality-gate:
+    name: Lint & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js (v22 LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Validar tipos TypeScript
+        run: npx tsc --noEmit
+
+      - name: Validar Build de Produção do Next.js
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: npm run build
+
+  # ===========================================================================
+  # ETAPA 2: DEPLOY EM STAGING (Branch: staging ou Pull Requests)
+  # ===========================================================================
+  deploy-staging:
+    name: Deploy Staging (Preview)
+    needs: quality-gate
+    if: github.ref == 'refs/heads/staging' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Baixar Configurações da Vercel (Preview Environment)
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Build dos Artefatos para Staging
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy dos Artefatos na Vercel (Staging URL)
+        run: vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
+
+  # ===========================================================================
+  # ETAPA 3: DEPLOY EM PRODUÇÃO (Branch: main)
+  # ===========================================================================
+  deploy-production:
+    name: Deploy Production
+    needs: quality-gate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Baixar Configurações da Vercel (Production Environment)
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Build dos Artefatos para Produção
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy dos Artefatos na Vercel (Production URL)
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
