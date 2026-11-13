@@ -1,11 +1,26 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { AdminKpiStrip } from '@/components/admin/AdminKpiStrip';
-import { HotspotMap, HotspotGeoJson } from '@/components/admin/HotspotMap';
+import type { HotspotGeoJson } from '@/components/admin/HotspotMap';
 import { Loader2, AlertCircle } from 'lucide-react';
+
+// Import dinâmico com ssr: false para isolar WebGL e Web Worker do lado do cliente
+const HotspotMap = dynamic(
+  () => import('@/components/admin/HotspotMap').then((mod) => mod.HotspotMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 text-zinc-400 gap-2">
+        <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+        <span className="text-xs font-mono text-zinc-400">Carregando malha geoespacial MapLibre...</span>
+      </div>
+    ),
+  }
+);
 
 // GeoJSON Inicial de Fallback (Mock realista para demonstração imediata)
 const SEED_FALLBACK_GEOJSON: HotspotGeoJson = {

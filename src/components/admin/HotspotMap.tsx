@@ -4,7 +4,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import type { Map as MapLibreMap, GeoJSONSource, Popup } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { Layers, ZoomIn, ZoomOut, Compass, Eye, ShieldAlert } from 'lucide-react';
+import { ZoomIn, ZoomOut, Compass } from 'lucide-react';
+
+// Garante que o MapLibre aponte para o Worker estático hospedado na raiz pública
+if (typeof window !== 'undefined') {
+  try {
+    maplibregl.config.WORKER_URL = `${window.location.origin}/maplibre-gl-worker.mjs`;
+  } catch (err) {
+    console.warn('Não foi possível definir WORKER_URL customizado:', err);
+  }
+}
 
 export interface HotspotFeatureProperties {
   cluster_id: string;
@@ -45,9 +54,20 @@ export function HotspotMap({
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const popupRef = useRef<Popup | null>(null);
 
-  // 1. Inicialização do Mapa com Tiles CartoDB Dark Matter (100% Free / Sem API Key)
+  // 1. Inicialização do Mapa com Proteção contra Perda de Contexto WebGL (StrictMode-safe)
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
+    let isMounted = true;
+    if (!mapContainerRef.current) return;
+
+    // Se já houver um mapa instanciado no mesmo container, limpa antes de recriar
+    if (mapRef.current) {
+      try {
+        mapRef.current.remove();
+      } catch {
+        // Ignora erros de remoção prévia
+      }
+      mapRef.current = null;
+    }
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
@@ -57,100 +77,117 @@ export function HotspotMap({
       attributionControl: false,
     });
 
+    // Tratamento para evitar que o navegador derrube a aba se o contexto WebGL for reiniciado
+    const canvas = map.getCanvas();
+    const handleContextLost = (e: Event) => {
+      e.preventDefault();
+      console.warn('MapLibre WebGL context lost - prevenindo crash.');
+    };
+    canvas?.addEventListener('webglcontextlost', handleContextLost, false);
+
     map.addControl(
       new maplibregl.AttributionControl({ compact: true }),
       'bottom-right'
     );
 
     map.on('load', () => {
+      if (!isMounted) return;
       setIsMapLoaded(true);
 
-      // Adiciona Fonte GeoJSON Vazia Inicial
-      map.addSource('hotspots-source', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [],
-        },
-      });
+      // Adiciona Fonte GeoJSON Inicial
+      if (!map.getSource('hotspots-source')) {
+        map.addSource('hotspots-source', {
+          type: 'geojson',
+          data: hotspotsGeoJson || {
+            type: 'FeatureCollection',
+            features: [],
+          },
+        });
+      }
 
-      // Camada 1: Halo de Brilho Térmico / Área de Influência (25m)
-      map.addLayer({
-        id: 'hotspots-glow',
-        type: 'circle',
-        source: 'hotspots-source',
-        paint: {
-          'circle-radius': [
-            'interpolate',
-            ['linear'],
-            ['get', 'confirmations_count'],
-            1, 16,
-            5, 26,
-            15, 38
-          ],
-          'circle-color': [
-            'step',
-            ['get', 'priority_score'],
-            '#10b981', // Verde < 40
-            40,
-            '#f59e0b', // Âmbar 40 - 74
-            75,
-            '#ef4444'  // Vermelho >= 75
-          ],
-          'circle-opacity': 0.22,
-          'circle-blur': 0.8,
-        },
-      });
+      // Camada 1: Halo Térmico / Área de Influência
+      if (!map.getLayer('hotspots-glow')) {
+        map.addLayer({
+          id: 'hotspots-glow',
+          type: 'circle',
+          source: 'hotspots-source',
+          paint: {
+            'circle-radius': [
+              'interpolate',
+              ['linear'],
+              ['get', 'confirmations_count'],
+              1, 16,
+              5, 26,
+              15, 38
+            ],
+            'circle-color': [
+              'step',
+              ['get', 'priority_score'],
+              '#10b981', // Verde < 40
+              40,
+              '#f59e0b', // Âmbar 40 - 74
+              75,
+              '#ef4444'  // Vermelho >= 75
+            ],
+            'circle-opacity': 0.22,
+            'circle-blur': 0.8,
+          },
+        });
+      }
 
-      // Camada 2: Círculo Central do Foco (Tamanho ponderado por confirmações)
-      map.addLayer({
-        id: 'hotspots-circles',
-        type: 'circle',
-        source: 'hotspots-source',
-        paint: {
-          'circle-radius': [
-            'interpolate',
-            ['linear'],
-            ['get', 'confirmations_count'],
-            1, 8,
-            5, 13,
-            15, 18
-          ],
-          'circle-color': [
-            'step',
-            ['get', 'priority_score'],
-            '#10b981',
-            40,
-            '#f59e0b',
-            75,
-            '#ef4444'
-          ],
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff',
-          'circle-opacity': 0.95,
-        },
-      });
+      // Camada 2: Círculo Central do Foco
+      if (!map.getLayer('hotspots-circles')) {
+        map.addLayer({
+          id: 'hotspots-circles',
+          type: 'circle',
+          source: 'hotspots-source',
+          paint: {
+            'circle-radius': [
+              'interpolate',
+              ['linear'],
+              ['get', 'confirmations_count'],
+              1, 8,
+              5, 13,
+              15, 18
+            ],
+            'circle-color': [
+              'step',
+              ['get', 'priority_score'],
+              '#10b981',
+              40,
+              '#f59e0b',
+              75,
+              '#ef4444'
+            ],
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ffffff',
+            'circle-opacity': 0.95,
+          },
+        });
+      }
 
-      // Camada 3: Contador Numérico de Cidadãos dentro do Marcador
-      map.addLayer({
-        id: 'hotspots-count-label',
-        type: 'symbol',
-        source: 'hotspots-source',
-        filter: ['>', ['get', 'confirmations_count'], 1],
-        layout: {
-          'text-field': ['to-string', ['get', 'confirmations_count']],
-          'text-size': 10,
-          'text-allow-overlap': true,
-          'text-ignore-placement': true,
-        },
-        paint: {
-          'text-color': '#ffffff',
-          'text-halo-color': '#000000',
-          'text-halo-width': 1.5,
-        },
-      });
+      // Camada 3: Contador Numérico no Marcador
+      if (!map.getLayer('hotspots-count-label')) {
+        map.addLayer({
+          id: 'hotspots-count-label',
+          type: 'symbol',
+          source: 'hotspots-source',
+          filter: ['>', ['get', 'confirmations_count'], 1],
+          layout: {
+            'text-field': ['to-string', ['get', 'confirmations_count']],
+            'text-size': 10,
+            'text-allow-overlap': true,
+            'text-ignore-placement': true,
+          },
+          paint: {
+            'text-color': '#ffffff',
+            'text-halo-color': '#000000',
+            'text-halo-width': 1.5,
+          },
+        });
+      }
 
-      // Cursor Pointer ao passar em cima de um foco
+      // Interações de Mouse
       map.on('mouseenter', 'hotspots-circles', () => {
         map.getCanvas().style.cursor = 'pointer';
       });
@@ -159,14 +196,13 @@ export function HotspotMap({
         map.getCanvas().style.cursor = '';
       });
 
-      // Evento de Clique: Seleciona o cluster e abre Popup técnico
+      // Clique em um Ponto
       map.on('click', 'hotspots-circles', (e) => {
         if (!e.features || !e.features[0]) return;
         const feature = e.features[0];
         const props = feature.properties as unknown as HotspotFeatureProperties;
         const coordinates = (feature.geometry as GeoJSON.Point).coordinates.slice() as [number, number];
 
-        // Centraliza e aproxima suavemente
         map.flyTo({
           center: coordinates,
           zoom: Math.max(map.getZoom(), 15),
@@ -178,7 +214,6 @@ export function HotspotMap({
           onSelectHotspot(props.cluster_id);
         }
 
-        // Monta o popup utilitário com estilo escuro
         if (popupRef.current) popupRef.current.remove();
 
         const priorityLabel = props.priority_score >= 75
@@ -239,24 +274,40 @@ export function HotspotMap({
 
     mapRef.current = map;
 
+    // Cleanup robusto
     return () => {
-      if (popupRef.current) popupRef.current.remove();
-      map.remove();
-      mapRef.current = null;
+      isMounted = false;
+      canvas?.removeEventListener('webglcontextlost', handleContextLost);
+      if (popupRef.current) {
+        popupRef.current.remove();
+        popupRef.current = null;
+      }
+      if (mapRef.current) {
+        try {
+          mapRef.current.remove();
+        } catch {
+          // Ignora erros ao desmontar
+        }
+        mapRef.current = null;
+      }
     };
   }, [initialCenter, initialZoom, onSelectHotspot]);
 
-  // 2. Atualização dos Dados GeoJSON no Mapa
+  // 2. Atualização dos Dados GeoJSON
   useEffect(() => {
     if (!mapRef.current || !isMapLoaded || !hotspotsGeoJson) return;
 
-    const source = mapRef.current.getSource('hotspots-source') as GeoJSONSource | undefined;
-    if (source) {
-      source.setData(hotspotsGeoJson);
+    try {
+      const source = mapRef.current.getSource('hotspots-source') as GeoJSONSource | undefined;
+      if (source) {
+        source.setData(hotspotsGeoJson);
+      }
+    } catch (err) {
+      console.warn('Erro ao atualizar GeoJSON no mapa:', err);
     }
   }, [hotspotsGeoJson, isMapLoaded]);
 
-  // 3. Centralização ao Selecionar um Cluster pelo Painel Lateral
+  // 3. Centralização ao Selecionar um Cluster
   useEffect(() => {
     if (!mapRef.current || !selectedClusterId || !hotspotsGeoJson) return;
 
@@ -275,17 +326,15 @@ export function HotspotMap({
     }
   }, [selectedClusterId, hotspotsGeoJson]);
 
-  // Controles de Zoom do Mapa
   const handleZoomIn = () => mapRef.current?.zoomIn();
   const handleZoomOut = () => mapRef.current?.zoomOut();
   const handleResetNorth = () => mapRef.current?.resetNorthPitch();
 
   return (
     <div className={`relative w-full h-full overflow-hidden bg-zinc-950 ${className}`}>
-      {/* Container WebGL do MapLibre */}
       <div ref={mapContainerRef} className="w-full h-full" />
 
-      {/* Controles Flutuantes Estilizados (Minimalista / Glassmorphism) */}
+      {/* Controles Flutuantes */}
       <div className="absolute top-4 right-4 z-10 flex flex-col space-y-1.5 bg-zinc-950/80 backdrop-blur-md p-1 rounded-lg border border-zinc-800 shadow-xl">
         <button
           onClick={handleZoomIn}
@@ -310,7 +359,7 @@ export function HotspotMap({
         </button>
       </div>
 
-      {/* Legenda de Severidade Térmica (Canto Inferior Esquerdo) */}
+      {/* Legenda Térmica */}
       <div className="absolute bottom-5 left-4 z-10 bg-zinc-950/85 backdrop-blur-md px-3 py-2 rounded-lg border border-zinc-800/90 text-[11px] shadow-lg flex items-center space-x-3 select-none">
         <span className="font-semibold text-zinc-300 uppercase tracking-wider text-[10px]">
           Severidade:
