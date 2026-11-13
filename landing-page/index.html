@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EcoCidadão — Ciência Cidadã e Inteligência Geoespacial para Zeladoria Urbana</title>
+  <meta name="description" content="Transforme denúncias de descarte irregular em ordens de serviço geoespaciais sem duplicidade. Registro cidadão em 3 toques (< 15s) e painel de roteirização B2G/B2B." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/landing/styles.css" />
+</head>
+<body>
+  <!-- Pill-Style Navigation (Inspired by GreenWorld / Agrone) -->
+  <header class="navbar" id="navbar">
+    <div class="container nav-inner">
+      <a href="#top" class="brand" aria-label="EcoCidadão Home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="3" y="3" width="6" height="6" rx="1.5"/>
+            <rect x="11" y="3" width="6" height="6" rx="1.5" opacity="0.45"/>
+            <rect x="3" y="11" width="6" height="6" rx="1.5" opacity="0.45"/>
+            <rect x="11" y="11" width="6" height="6" rx="1.5"/>
+            <rect x="15" y="15" width="6" height="6" rx="1.5" fill="#7ED348"/>
+          </svg>
+        </span>
+        <span class="brand-text">Eco<strong>Cidadão</strong></span>
+      </a>
+
+      <nav class="nav-pills" aria-label="Navegação principal">
+        <a href="#problema" class="nav-pill">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          O Problema
+        </a>
+        <a href="#solucao" class="nav-pill">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          Fluxo 3 Toques
+        </a>
+        <a href="#dashboard" class="nav-pill">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Painel Gestor
+        </a>
+        <a href="#planos" class="nav-pill">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-3 3"/></svg>
+          Planos B2G
+        </a>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="/" class="btn btn-outline btn-sm">Abrir App</a>
+        <button class="btn btn-forest btn-sm" data-open-modal>Solicitar Demo</button>
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Abrir menu" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="mobile-drawer" id="mobileDrawer">
+      <a href="/">Abrir App Cidadão</a>
+      <a href="#problema">O Problema</a>
+      <a href="#solucao">Fluxo 3 Toques</a>
+      <a href="#dashboard">Painel Gestor</a>
+      <a href="#roi">Calculadora ROI</a>
+      <a href="#planos">Planos B2G</a>
+      <button class="btn btn-forest" data-open-modal>Solicitar Demonstração</button>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- Hero Section (Organic Bento Editorial) -->
+    <section class="hero">
+      <div class="container">
+        <div class="hero-top-stage">
+          <!-- Floating decorative badges -->
+          <div class="float-badge float-tl" aria-hidden="true">
+            <span class="circle-icon sage">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </span>
+            <span class="circle-icon forest">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </span>
+          </div>
+
+          <div class="float-badge float-tr" aria-hidden="true">
+            <span class="circle-icon sage">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/></svg>
+            </span>
+            <a href="#solucao" class="circle-icon outline" aria-label="Ir para o fluxo">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg>
+            </a>
+          </div>
+
+          <h1 class="hero-headline">
+            Transforme relatos em
+            <span class="highlight-pill">dados acionáveis</span>
+            para limpar a cidade
+          </h1>
+
+          <div class="hero-flank-row">
+            <p class="flank-copy">
+              Plataforma de Ciência Cidadã e Zeladoria Urbana Inteligente. Denúncia anônima em 3 toques e roteirização sem duplicidades.
+            </p>
+            <div class="flank-actions">
+              <a href="#solucao" class="btn btn-sage">
+                Testar Fluxo
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5-Card Organic Bento Collage -->
+        <div class="hero-bento">
+          <!-- Card 1: Brand / Texture -->
+          <div class="bento-card bento-sage-waves">
+            <div class="bento-mark">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="3" y="3" width="6" height="6" rx="1.5"/>
+                <rect x="11" y="3" width="6" height="6" rx="1.5" opacity="0.5"/>
+                <rect x="3" y="11" width="6" height="6" rx="1.5" opacity="0.5"/>
+                <rect x="11" y="11" width="6" height="6" rx="1.5"/>
+              </svg>
+            </div>
+            <span class="bento-micro-label mono">PWA ZERO-LOGIN</span>
+          </div>
+
+          <!-- Card 2: Stacked Metrics -->
+          <div class="bento-stack">
+            <div class="bento-card bento-cream-stat">
+              <strong class="mono">&lt; 15 seg</strong>
+              <p>Tempo médio para o cidadão registrar um descarte irregular sem cadastro.</p>
+            </div>
+            <div class="bento-card bento-sage-stat">
+              <strong class="mono">100% LGPD</strong>
+              <p>Remoção automática de EXIF pessoal no dispositivo antes do envio.</p>
+            </div>
+          </div>
+
+          <!-- Card 3: Center Hero Visual (Forest Geospatial Card) -->
+          <div class="bento-card bento-center-forest">
+            <div class="bento-center-top">
+              <span class="pill-tag-dark">Desafio 09 · Ficha Ambiental</span>
+              <span class="circle-badge-white">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              </span>
+            </div>
+            <div class="bento-center-map">
+              <div class="map-ring r1"></div>
+              <div class="map-ring r2"></div>
+              <div class="map-hotspot-pill">
+                <span class="dot-red"></span>
+                <div>
+                  <strong>Hotspot #04 · Score 92</strong>
+                  <span class="mono">12 relatos → 1 ordem</span>
+                </div>
+              </div>
+            </div>
+            <div class="bento-center-pill">
+              De 120 relatos soltos para 8 rotas reais
+            </div>
+          </div>
+
+          <!-- Card 4: Vibrant Lime Impact Card (Inspired by Agrone 4.9★ card) -->
+          <div class="bento-card bento-lime-impact">
+            <div class="lime-top">
+              <div class="lime-tags">
+                <span class="glass-pill">PostGIS</span>
+                <span class="glass-pill">dHash 64-bit</span>
+              </div>
+            </div>
+            <div class="lime-metric">
+              <strong class="mono">&gt; 85%</strong>
+              <span>Redução de chamados duplicados na triagem</span>
+            </div>
+            <div class="lime-bottom">
+              <span class="mono" style="font-size:0.75rem;font-weight:700;">Raio de 25m</span>
+              <a href="#dashboard" class="circle-icon forest" aria-label="Ver painel gestor">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+              </a>
+            </div>
+          </div>
+
+          <!-- Card 5: Concentric Rings Card -->
+          <div class="bento-card bento-rings">
+            <div class="rings-bg" aria-hidden="true"></div>
+            <div class="rings-content">
+              <span class="mono">R$ 0 / mês</span>
+              <strong>MVP Custo Zero</strong>
+              <p>Pronto para escalar em B2G e B2B</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Signature Sage Ticker Strip -->
+    <div class="ticker-strip" aria-hidden="true">
+      <div class="ticker-track">
+        <span>EcoCidadão</span><span class="star">✳</span>
+        <span>Ciência Cidadã</span><span class="star">✳</span>
+        <span>Inversão de Esforço em 3 Toques</span><span class="star">✳</span>
+        <span>Deduplicação Espacial PostGIS</span><span class="star">✳</span>
+        <span>Painel Gestor B2G / B2B</span><span class="star">✳</span>
+        <span>Notificação Local Limpo</span><span class="star">✳</span>
+        <span>EcoCidadão</span><span class="star">✳</span>
+        <span>Ciência Cidadã</span><span class="star">✳</span>
+        <span>Inversão de Esforço em 3 Toques</span><span class="star">✳</span>
+        <span>Deduplicação Espacial PostGIS</span><span class="star">✳</span>
+      </div>
+    </div>
+
+    <!-- Editorial Split Intro + Warm Cream Product Cards (Inspired by Agrone) -->
+    <section id="problema" class="section">
+      <div class="container">
+        <div class="editorial-split">
+          <div class="split-left">
+            <span class="pill-outline">Diagnóstico de Campo</span>
+            <p class="muted-lead">
+              Entrevistas com moradores (Persona Marcos) e gestores públicos (Persona Juliana) comprovaram por que o 156 tradicional e os grupos de WhatsApp falham.
+            </p>
+          </div>
+          <div class="split-right">
+            <h2>Chega de burocracia para o cidadão e cegueira espacial para a prefeitura.</h2>
+            <div class="split-actions">
+              <a href="#solucao" class="btn btn-sage">Ver Nossa Solução</a>
+              <a href="#roi" class="link-arrow">Calcular Economia →</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="bento-shell-dark">
+          <div class="warm-bento-grid">
+            <article class="warm-card">
+              <div class="warm-card-body">
+                <span class="pill-outline-sm">Dor #01 · Cidadão</span>
+                <h3>Barreira dos 30 Segundos no Canal 156</h3>
+                <p>Ouvidorias exigem login, CPF e digitação manual de endereço (4 a 8 min). O morador desiste em 30 segundos.</p>
+                <div class="warm-card-foot">
+                  <span class="mono stat-chip">Abandono &gt; 85%</span>
+                  <a href="#solucao" class="btn-circle-lime" aria-label="Ver solução">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+                  </a>
+                </div>
+              </div>
+            </article>
+
+            <article class="warm-card">
+              <div class="warm-card-body">
+                <span class="pill-outline-sm">Dor #02 · Redes Sociais</span>
+                <h3>WhatsApp Apaga o GPS das Fotos</h3>
+                <p>Ao comprimir imagens enviadas em grupos de bairro, o WhatsApp remove metadados EXIF, gerando fotos sem localização.</p>
+                <div class="warm-card-foot">
+                  <span class="mono stat-chip">0% dado acionável</span>
+                  <a href="#solucao" class="btn-circle-lime" aria-label="Ver solução">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+                  </a>
+                </div>
+              </div>
+            </article>
+
+            <article class="warm-card">
+              <div class="warm-card-body">
+                <span class="pill-outline-sm">Dor #03 · Gestor B2G</span>
+                <h3>15 Chamados para o Mesmo Sofá</h3>
+                <p>Analistas gastam mais de 40% do tempo descartando duplicidades e despachando caminhões de porte errado.</p>
+                <div class="warm-card-foot">
+                  <span class="mono stat-chip">+40% tempo perdido</span>
+                  <a href="#dashboard" class="btn-circle-lime" aria-label="Ver painel">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+                  </a>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive 3-Tap Citizen Flow -->
+    <section id="solucao" class="section section-cream">
+      <div class="container">
+        <div class="section-header-left">
+          <span class="pill-outline">Inversão de Esforço · Mobile-First PWA</span>
+          <h2>Do celular do morador à rota do caminhão em <span class="highlight-pill">3 toques</span></h2>
+          <p>Transferimos 100% da carga cognitiva para o Web Worker no celular e para o motor espacial PostGIS. Clique nas etapas abaixo:</p>
+        </div>
+
+        <div class="flow-interactive">
+          <div class="flow-steps" role="tablist" aria-label="Etapas do fluxo cidadão">
+            <button class="flow-step active" data-step="0" role="tab" aria-selected="true">
+              <span class="step-num mono">01</span>
+              <div>
+                <h3>Captura Instantânea (Zero-Login)</h3>
+                <p>Abre direto na câmera pelo navegador ou QR Code na rua. O GPS calibra em segundo plano sem travar o disparo e comprime para WebP (~140 KB) sem PII.</p>
+              </div>
+            </button>
+
+            <button class="flow-step" data-step="1" role="tab" aria-selected="false">
+              <span class="step-num mono">02</span>
+              <div>
+                <h3>Escala Visual de Porte (P / M / G)</h3>
+                <p>Sem formulários técnicos. O cidadão toca no porte visual (Saco, Caçamba ou Caminhão Basculante) e o envio ocorre automaticamente — mesmo offline via IndexedDB.</p>
+              </div>
+            </button>
+
+            <button class="flow-step" data-step="2" role="tab" aria-selected="false">
+              <span class="step-num mono">03</span>
+              <div>
+                <h3>Loop de Recompensa "Local Limpo"</h3>
+                <p>O morador vê quantos vizinhos já confirmaram o foco e ativa o alerta anônimo Web Push. Quando a prefeitura limpa, ele recebe o Antes vs. Depois.</p>
+              </div>
+            </button>
+          </div>
+
+          <div class="phone-stage">
+            <div class="capture-model-wrap" id="captureModelWrap">
+              <div class="capture-bg-headline" aria-hidden="true">
+                <span>Uma Solução contra</span>
+                <span>o Descarte Irregular</span>
+              </div>
+              <img src="/landing/assets/captura-modelo.png" alt="EcoCidadão — Tela de captura em 3 toques" class="capture-model-img" />
+              <div class="phone-floor-shadow" aria-hidden="true"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Manager Dashboard Section (Deep Forest Command Center) -->
+    <section id="dashboard" class="section section-forest">
+      <div class="container">
+        <div class="section-header-center light">
+          <span class="pill-outline-light">Central de Comando B2G / B2B</span>
+          <h2>De 120 relatos populares a 8 pontos críticos priorizados</h2>
+          <p>Interface de alta legibilidade com <strong>Regra dos 2 Cliques</strong>, sincronia bidirecional mapa-lista e comprovação fotográfica obrigatória de limpeza.</p>
+        </div>
+
+        <div class="dashboard-mockup">
+          <div class="dash-topbar">
+            <div class="dash-brand">
+              <span class="status-live"></span>
+              <strong>EcoCidadão Admin</strong>
+              <span class="mono muted-text">tenant: pref-demonstracao</span>
+            </div>
+            <div class="dash-kpis">
+              <span class="kpi-chip">Focos Abertos: <strong class="mono">18</strong></span>
+              <span class="kpi-chip">Relatos Unificados: <strong class="mono">84</strong></span>
+              <span class="kpi-chip lime">Deduplicação: <strong class="mono">87.4%</strong></span>
+            </div>
+          </div>
+
+          <div class="dash-grid">
+            <aside class="dash-sidebar">
+              <div class="dash-filter-bar">
+                <button class="filter-chip active" data-filter="all">Todos (3)</button>
+                <button class="filter-chip" data-filter="critical">Críticos</button>
+                <button class="filter-chip" data-filter="resolved">Resolvidos</button>
+              </div>
+              <div class="dash-list" id="dashList">
+                <div class="dash-card active" data-priority="critical" data-id="1">
+                  <div class="dash-card-top">
+                    <span class="sev-dot red"></span>
+                    <span class="mono">SCORE 92</span>
+                    <span class="cluster-badge">🔥 9 Cidadãos</span>
+                  </div>
+                  <h4>Margem Córrego Limpo</h4>
+                  <p>Entulho de obra + Risco hídrico · Porte G</p>
+                </div>
+
+                <div class="dash-card" data-priority="medium" data-id="2">
+                  <div class="dash-card-top">
+                    <span class="sev-dot amber"></span>
+                    <span class="mono">SCORE 64</span>
+                    <span class="cluster-badge">🔥 5 Cidadãos</span>
+                  </div>
+                  <h4>Rua dos Ipês, Alt. 410</h4>
+                  <p>Sofá e colchão em calçada · Porte M</p>
+                </div>
+
+                <div class="dash-card" data-priority="resolved" data-id="3">
+                  <div class="dash-card-top">
+                    <span class="sev-dot violet"></span>
+                    <span class="mono">RESOLVIDO</span>
+                    <span class="cluster-badge">✓ 7 Notificados</span>
+                  </div>
+                  <h4>Praça da Estação (QR-04)</h4>
+                  <p>Limpeza comprovada · Ecoponto 4m³</p>
+                </div>
+              </div>
+            </aside>
+
+            <div class="dash-map-area">
+              <div class="map-grid-overlay" aria-hidden="true"></div>
+              <div class="map-pin pin-1 active" data-id="1" title="Foco #01 - Score 92">
+                <span class="pin-core red mono">92</span>
+              </div>
+              <div class="map-pin pin-2" data-id="2" title="Foco #02 - Score 64">
+                <span class="pin-core amber mono">64</span>
+              </div>
+              <div class="map-pin pin-3" data-id="3" title="Foco #03 - Resolvido">
+                <span class="pin-core violet mono">✓</span>
+              </div>
+
+              <div class="dash-drawer" id="dashDrawer"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROI & Impact Calculator -->
+    <section id="roi" class="section">
+      <div class="container">
+        <div class="roi-wrapper">
+          <div class="roi-controls">
+            <span class="pill-outline">Eficiência · Eficácia · Efetividade</span>
+            <h2>Calcule a economia na operação da sua cidade</h2>
+            <p>Ajuste o volume mensal de ocorrências de descarte irregular recebidas pela prefeitura ou concessionária e veja o impacto da deduplicação espacial.</p>
+
+            <div class="slider-group">
+              <div class="slider-header">
+                <label for="reportsRange">Chamados mensais recebidos</label>
+                <span class="mono slider-val" id="reportsVal">1.200 relatos/mês</span>
+              </div>
+              <input type="range" id="reportsRange" min="200" max="5000" step="100" value="1200" />
+              <div class="slider-scale mono">
+                <span>200</span>
+                <span>2.500</span>
+                <span>5.000</span>
+              </div>
+            </div>
+
+            <p class="roi-assumptions">
+              <strong>Premissas:</strong> Taxa média de deduplicação espacial de <code>78%</code> (PostGIS 25m), economia de <code>8 min</code> de triagem por chamado duplicado e redução de <code>24%</code> em deslocamentos improdutivos de frota.
+            </p>
+          </div>
+
+          <div class="roi-results">
+            <div class="roi-stat-card primary">
+              <span class="roi-label">Ordens de Serviço Reais Geradas</span>
+              <strong class="mono roi-number" id="roiClusters">264 focos</strong>
+              <span class="roi-sub" id="roiEliminated">936 chamados duplicados filtrados automaticamente</span>
+            </div>
+            <div class="roi-stat-row">
+              <div class="roi-stat-card">
+                <span class="roi-label">Horas de Triagem Poupadas</span>
+                <strong class="mono roi-number" id="roiHours">125 h/mês</strong>
+                <span class="roi-sub">Equipe focada em campo</span>
+              </div>
+              <div class="roi-stat-card">
+                <span class="roi-label">Economia Operacional</span>
+                <strong class="mono roi-number" id="roiMoney">R$ 11.400/mês</strong>
+                <span class="roi-sub">Diesel + horas-máquina</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Business Model & Pricing -->
+    <section id="planos" class="section section-cream">
+      <div class="container">
+        <div class="section-header-center">
+          <span class="pill-outline">Modelo de Negócio Escalável</span>
+          <h2>Do Piloto a Custo Zero à Escala Municipal</h2>
+          <p>Arquitetura desenhada para validar em bairros sem barreiras orçamentárias e escalar com contratos SaaS B2G/B2B e API White-Label.</p>
+        </div>
+
+        <div class="pricing-grid">
+          <article class="pricing-card">
+            <div class="pricing-head">
+              <span class="pill-outline-sm">MVP &amp; Extensão</span>
+              <h3>Piloto Cidadão</h3>
+              <div class="plan-price"><span class="mono">R$ 0</span><span>/mês</span></div>
+              <p>Ideal para validação em bairros, coletivos comunitários e pesquisa acadêmica.</p>
+            </div>
+            <ul class="plan-features">
+              <li>✓ PWA Cidadão em 3 toques (sem login)</li>
+              <li>✓ Deduplicação espacial PostGIS + dHash</li>
+              <li>✓ Painel Gestor MapLibre + OpenStreetMap</li>
+              <li>✓ Exportação aberta GeoJSON / CSV</li>
+              <li>✓ Até 7.100 fotos WebP no Free Tier</li>
+            </ul>
+            <button class="btn btn-outline btn-block" data-open-modal data-plan="Piloto Cidadão (R$ 0)">Iniciar Piloto</button>
+          </article>
+
+          <article class="pricing-card featured">
+            <div class="featured-badge">Mais Procurado · B2G/B2B</div>
+            <div class="pricing-head">
+              <span class="pill-outline-sm">Prefeituras &amp; Concessionárias</span>
+              <h3>Prefeitura Inteligente</h3>
+              <div class="plan-price"><span class="mono">SaaS</span><span>/por frota</span></div>
+              <p>Operação completa de zeladoria urbana com isolamento Multi-Tenant e SLA.</p>
+            </div>
+            <ul class="plan-features">
+              <li>✓ Tudo do Piloto + Multi-Tenant isolado</li>
+              <li>✓ Kit de Placas QR Code para pontos crônicos</li>
+              <li>✓ Web Push "Local Limpo" ilimitado</li>
+              <li>✓ Relatórios mensais de ROI e reincidência</li>
+              <li>✓ Suporte técnico e implantação assistida</li>
+            </ul>
+            <button class="btn btn-forest btn-block" data-open-modal data-plan="Prefeitura Inteligente (SaaS)">Solicitar Proposta</button>
+          </article>
+
+          <article class="pricing-card">
+            <div class="pricing-head">
+              <span class="pill-outline-sm">Escala Enterprise</span>
+              <h3>White-Label &amp; IA 156</h3>
+              <div class="plan-price"><span class="mono">API</span><span>+ Setup</span></div>
+              <p>Integre nossa inteligência ao aplicativo 156 oficial já existente no município.</p>
+            </div>
+            <ul class="plan-features">
+              <li>✓ API Headless &amp; SDK WebView "Câmera 156"</li>
+              <li>✓ IA de Cubagem (m³) e tipologia de resíduo</li>
+              <li>✓ Roteirização dinâmica de frota (OR-Tools)</li>
+              <li>✓ Webhook bidirecional com sistemas legados</li>
+              <li>✓ Nuvem dedicada AWS / GCP com alta escala</li>
+            </ul>
+            <button class="btn btn-outline btn-block" data-open-modal data-plan="Enterprise White-Label 156">Falar com Arquitetura</button>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Scientific Rigor & LGPD Strip -->
+    <section class="section">
+      <div class="container">
+        <div class="trust-grid">
+          <div class="trust-item">
+            <span class="pill-sage mono">LGPD BY DESIGN</span>
+            <h3>Anonimato Nativo na Borda</h3>
+            <p>Nenhum dado pessoal (CPF, nome, telefone) é coletado. Metadados EXIF rastreáveis são removidos no navegador e dispositivos usam hash <code>HMAC-SHA256</code>.</p>
+          </div>
+          <div class="trust-item">
+            <span class="pill-sage mono">DESAFIO 09 · CIÊNCIA CIDADÃ</span>
+            <h3>Protocolo Científico Verificável</h3>
+            <p>Inspirado no protocolo <em>NASA GLOBE Observer</em>, cada registro coleta coordenada WGS84, acurácia métrica GNSS, escala volumétrica e consenso multi-observador.</p>
+          </div>
+          <div class="trust-item">
+            <span class="pill-sage mono">ENGENHARIA RESILIENTE</span>
+            <h3>Funciona Offline em Córregos</h3>
+            <p>Compressão <code>WebP ~140KB</code> em Web Worker (economizando 97% de storage) e fila local no <code>IndexedDB</code> para fundos de vale sem sinal 4G.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final CTA Banner (Forest Green) -->
+    <section class="section cta-banner">
+      <div class="container cta-inner">
+        <div>
+          <span class="pill-outline-light">Curricularização da Extensão · IFSP</span>
+          <h2>Pronto para transformar a zeladoria urbana da sua cidade?</h2>
+          <p>Projeto desenvolvido em <strong>Análise e Desenvolvimento de Sistemas (IFSP)</strong> por <strong>Enzo Alves dos Santos Souza</strong> e <strong>Clayver Alexssander Ferreira de Oliveira</strong>.</p>
+        </div>
+        <div class="cta-buttons">
+          <button class="btn btn-lime btn-lg" data-open-modal>Solicitar Demonstração</button>
+          <a href="/" class="btn btn-ghost-light btn-lg">Acessar App Cidadão</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <span class="brand-text">Eco<strong>Cidadão</strong></span>
+        <p>Ciência Cidadã e Inteligência Geoespacial para Monitoramento de Resíduos Sólidos Urbanos.</p>
+      </div>
+      <div class="footer-meta">
+        <span>Ficha 09 · Ciência Cidadã e Dados Ambientais</span>
+        <span>© 2026 EcoCidadão · Todos os direitos reservados</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Demo Request Modal -->
+  <div class="modal-backdrop" id="demoModal" aria-hidden="true" role="dialog" aria-labelledby="modalTitle">
+    <div class="modal-card">
+      <button class="modal-close" id="closeModalBtn" aria-label="Fechar janela">&times;</button>
+      <span class="pill-outline-sm">Agendar Apresentação / Piloto</span>
+      <h3 id="modalTitle">Solicitar Demonstração</h3>
+      <p class="modal-desc">Receba acesso ao ambiente de testes (PWA Cidadão + Painel Gestor) e estudo de viabilidade para o seu município.</p>
+
+      <form id="demoForm" class="modal-form">
+        <div class="form-field">
+          <label for="orgName">Prefeitura, Concessionária ou Instituição</label>
+          <input type="text" id="orgName" required placeholder="Ex: Secretaria de Serviços Públicos" />
+        </div>
+        <div class="form-field">
+          <label for="contactEmail">E-mail institucional</label>
+          <input type="email" id="contactEmail" required placeholder="gestor@municipio.sp.gov.br" />
+        </div>
+        <div class="form-field">
+          <label for="planSelect">Modalidade de interesse</label>
+          <select id="planSelect">
+            <option value="Piloto Cidadão (R$ 0)">Piloto Cidadão (R$ 0 — Extensão / Bairro)</option>
+            <option value="Prefeitura Inteligente (SaaS)" selected>Prefeitura Inteligente (SaaS por Frota)</option>
+            <option value="Enterprise White-Label 156">Enterprise White-Label &amp; API 156</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-forest btn-block">Enviar Solicitação</button>
+      </form>
+
+      <div class="modal-success" id="modalSuccess" hidden>
+        <div class="success-icon">✓</div>
+        <h4>Solicitação registrada!</h4>
+        <p>Obrigado pelo interesse no <strong>EcoCidadão</strong>. Em produção, nossa equipe retornaria com o link do ambiente piloto em até 24h.</p>
+        <button class="btn btn-outline btn-block" id="resetModalBtn">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/landing/script.js"></script>
+</body>
+</html>
