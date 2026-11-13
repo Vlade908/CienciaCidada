@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { ThemeProvider } from "@/context/ThemeContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -27,9 +28,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className="dark">
-      <body className="bg-zinc-950 text-zinc-50 antialiased overflow-hidden select-none">
-        {children}
+    <html lang="pt-BR" className="dark" suppressHydrationWarning>
+      <body className="bg-background text-foreground antialiased overflow-hidden select-none">
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

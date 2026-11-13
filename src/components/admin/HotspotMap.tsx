@@ -4,9 +4,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import type { Map as MapLibreMap, GeoJSONSource, Popup } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { useTheme } from '@/context/ThemeContext';
 import { ZoomIn, ZoomOut, Compass } from 'lucide-react';
 
-// Garante que o MapLibre aponte para o Worker estático hospedado na raiz pública
 if (typeof window !== 'undefined') {
   try {
     maplibregl.config.WORKER_URL = `${window.location.origin}/maplibre-gl-worker.mjs`;
@@ -46,38 +46,42 @@ export function HotspotMap({
   selectedClusterId,
   onSelectHotspot,
   className = '',
-  initialCenter = [-46.633308, -23.550520], // São Paulo Centro
+  initialCenter = [-46.633308, -23.550520],
   initialZoom = 13,
 }: HotspotMapProps) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const mapStyleUrl = isDark
+    ? 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+    : 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const popupRef = useRef<Popup | null>(null);
 
-  // 1. Inicialização do Mapa com Proteção contra Perda de Contexto WebGL (StrictMode-safe)
+  // 1. Inicialização do Mapa
   useEffect(() => {
     let isMounted = true;
     if (!mapContainerRef.current) return;
 
-    // Se já houver um mapa instanciado no mesmo container, limpa antes de recriar
     if (mapRef.current) {
       try {
         mapRef.current.remove();
       } catch {
-        // Ignora erros de remoção prévia
+        // ignore
       }
       mapRef.current = null;
     }
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
-      style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+      style: mapStyleUrl,
       center: initialCenter,
       zoom: initialZoom,
       attributionControl: false,
     });
 
-    // Tratamento para evitar que o navegador derrube a aba se o contexto WebGL for reiniciado
     const canvas = map.getCanvas();
     const handleContextLost = (e: Event) => {
       e.preventDefault();
@@ -105,7 +109,7 @@ export function HotspotMap({
         });
       }
 
-      // Camada 1: Halo Térmico / Área de Influência
+      // Camada 1: Halo Térmico
       if (!map.getLayer('hotspots-glow')) {
         map.addLayer({
           id: 'hotspots-glow',
@@ -123,11 +127,11 @@ export function HotspotMap({
             'circle-color': [
               'step',
               ['get', 'priority_score'],
-              '#10b981', // Verde < 40
+              '#10b981',
               40,
-              '#f59e0b', // Âmbar 40 - 74
+              '#f59e0b',
               75,
-              '#ef4444'  // Vermelho >= 75
+              '#ef4444'
             ],
             'circle-opacity': 0.22,
             'circle-blur': 0.8,
@@ -135,7 +139,7 @@ export function HotspotMap({
         });
       }
 
-      // Camada 2: Círculo Central do Foco
+      // Camada 2: Círculo Central
       if (!map.getLayer('hotspots-circles')) {
         map.addLayer({
           id: 'hotspots-circles',
@@ -166,7 +170,7 @@ export function HotspotMap({
         });
       }
 
-      // Camada 3: Contador Numérico no Marcador
+      // Camada 3: Contador Numérico
       if (!map.getLayer('hotspots-count-label')) {
         map.addLayer({
           id: 'hotspots-count-label',
@@ -187,7 +191,6 @@ export function HotspotMap({
         });
       }
 
-      // Interações de Mouse
       map.on('mouseenter', 'hotspots-circles', () => {
         map.getCanvas().style.cursor = 'pointer';
       });
@@ -196,7 +199,6 @@ export function HotspotMap({
         map.getCanvas().style.cursor = '';
       });
 
-      // Clique em um Ponto
       map.on('click', 'hotspots-circles', (e) => {
         if (!e.features || !e.features[0]) return;
         const feature = e.features[0];
@@ -235,19 +237,19 @@ export function HotspotMap({
           : '';
 
         const popupContent = document.createElement('div');
-        popupContent.className = 'text-zinc-200 text-xs font-sans p-1';
+        popupContent.className = 'text-xs font-sans p-1';
         popupContent.style.minWidth = '210px';
         popupContent.innerHTML = `
           ${photoHtml}
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-            <strong style="color:#fafafa;font-family:monospace;font-size:12px;">${props.protocol_code || 'ECO-NOVO'}</strong>
-            <span style="font-size:10px;background:#27272a;padding:2px 6px;border-radius:4px;border:1px solid #3f3f46;">
+            <strong style="font-family:monospace;font-size:12px;">${props.protocol_code || 'ECO-NOVO'}</strong>
+            <span style="font-size:10px;padding:2px 6px;border-radius:4px;border:1px solid currentColor;">
               ${priorityLabel} (${Math.round(props.priority_score || 0)})
             </span>
           </div>
-          <div style="color:#a1a1aa;font-size:11px;margin-bottom:6px;">
-            Escala: <span style="color:#e4e4e7;">${scaleLabel}</span><br/>
-            Validação: <strong style="color:#34d399;">${props.confirmations_count || 1} cidadãos</strong> unificados
+          <div style="font-size:11px;margin-bottom:6px;opacity:0.85;">
+            Escala: <strong>${scaleLabel}</strong><br/>
+            Validação: <strong style="color:#059669;">${props.confirmations_count || 1} cidadãos</strong> unificados
           </div>
           <button id="btn-inspect-cluster" style="width:100%;background:#059669;color:#ffffff;font-weight:600;padding:6px;border-radius:6px;border:none;cursor:pointer;font-size:11px;">
             Inspecionar e Despachar
@@ -274,7 +276,6 @@ export function HotspotMap({
 
     mapRef.current = map;
 
-    // Cleanup robusto
     return () => {
       isMounted = false;
       canvas?.removeEventListener('webglcontextlost', handleContextLost);
@@ -286,12 +287,12 @@ export function HotspotMap({
         try {
           mapRef.current.remove();
         } catch {
-          // Ignora erros ao desmontar
+          // ignore
         }
         mapRef.current = null;
       }
     };
-  }, [initialCenter, initialZoom, onSelectHotspot]);
+  }, [initialCenter, initialZoom, onSelectHotspot, mapStyleUrl]);
 
   // 2. Atualização dos Dados GeoJSON
   useEffect(() => {
@@ -331,28 +332,28 @@ export function HotspotMap({
   const handleResetNorth = () => mapRef.current?.resetNorthPitch();
 
   return (
-    <div className={`relative w-full h-full overflow-hidden bg-zinc-950 ${className}`}>
+    <div className={`relative w-full h-full overflow-hidden bg-zinc-100 dark:bg-zinc-950 transition-colors ${className}`}>
       <div ref={mapContainerRef} className="w-full h-full" />
 
-      {/* Controles Flutuantes */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col space-y-1.5 bg-zinc-950/80 backdrop-blur-md p-1 rounded-lg border border-zinc-800 shadow-xl">
+      {/* Controles Flutuantes com Suporte a Modo Claro/Escuro */}
+      <div className="absolute top-4 right-4 z-10 flex flex-col space-y-1.5 bg-white/90 dark:bg-zinc-950/80 backdrop-blur-md p-1 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-lg transition-colors">
         <button
           onClick={handleZoomIn}
-          className="w-7 h-7 flex items-center justify-center rounded text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+          className="w-7 h-7 flex items-center justify-center rounded text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           title="Aproximar (+)"
         >
           <ZoomIn className="w-4 h-4" />
         </button>
         <button
           onClick={handleZoomOut}
-          className="w-7 h-7 flex items-center justify-center rounded text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+          className="w-7 h-7 flex items-center justify-center rounded text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           title="Afastar (-)"
         >
           <ZoomOut className="w-4 h-4" />
         </button>
         <button
           onClick={handleResetNorth}
-          className="w-7 h-7 flex items-center justify-center rounded text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+          className="w-7 h-7 flex items-center justify-center rounded text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           title="Orientar para o Norte"
         >
           <Compass className="w-4 h-4" />
@@ -360,21 +361,21 @@ export function HotspotMap({
       </div>
 
       {/* Legenda Térmica */}
-      <div className="absolute bottom-5 left-4 z-10 bg-zinc-950/85 backdrop-blur-md px-3 py-2 rounded-lg border border-zinc-800/90 text-[11px] shadow-lg flex items-center space-x-3 select-none">
-        <span className="font-semibold text-zinc-300 uppercase tracking-wider text-[10px]">
+      <div className="absolute bottom-5 left-4 z-10 bg-white/90 dark:bg-zinc-950/85 backdrop-blur-md px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-800/90 text-[11px] shadow-lg flex items-center space-x-3 select-none transition-colors">
+        <span className="font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider text-[10px]">
           Severidade:
         </span>
         <div className="flex items-center space-x-1">
-          <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm shadow-red-500/50" />
-          <span className="text-zinc-300">Crítico (&ge;75)</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-xs" />
+          <span className="text-zinc-700 dark:text-zinc-300 font-medium">Crítico (&ge;75)</span>
         </div>
         <div className="flex items-center space-x-1">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50" />
-          <span className="text-zinc-300">Médio (40-74)</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-xs" />
+          <span className="text-zinc-700 dark:text-zinc-300 font-medium">Médio (40-74)</span>
         </div>
         <div className="flex items-center space-x-1">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" />
-          <span className="text-zinc-300">Baixo (&lt;40)</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs" />
+          <span className="text-zinc-700 dark:text-zinc-300 font-medium">Baixo (&lt;40)</span>
         </div>
       </div>
     </div>

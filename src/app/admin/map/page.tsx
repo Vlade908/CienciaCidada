@@ -109,7 +109,7 @@ function MapViewContent() {
   }, [deepLinkedClusterId]);
 
   return (
-    <div className="flex-1 flex flex-col h-full w-full overflow-hidden bg-zinc-950">
+    <div className="flex-1 flex flex-col h-full w-full overflow-hidden bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors">
       <AdminHeader
         onRefresh={() => fetchHotspots(true)}
         isRefreshing={isRefreshing}
@@ -117,17 +117,17 @@ function MapViewContent() {
       />
 
       {/* Barra de Subnavegação do Mapa */}
-      <div className="h-10 bg-zinc-950 border-b border-zinc-800/80 px-4 flex items-center justify-between text-xs shrink-0 z-20">
+      <div className="h-10 bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800/80 px-4 flex items-center justify-between text-xs shrink-0 z-20 transition-colors">
         <Link
           href="/admin"
-          className="flex items-center space-x-1.5 text-zinc-400 hover:text-zinc-100 transition-colors font-medium"
+          className="flex items-center space-x-1.5 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors font-medium"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Voltar para Painel de Ordens & Indicadores</span>
         </Link>
 
-        <div className="flex items-center space-x-2 text-[11px] text-zinc-400 font-mono">
-          <Layers className="w-3.5 h-3.5 text-emerald-400" />
+        <div className="flex items-center space-x-2 text-[11px] text-zinc-500 dark:text-zinc-400 font-mono">
+          <Layers className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
           <span>{hotspotsData.features.length} focos plotados em tempo real</span>
         </div>
       </div>

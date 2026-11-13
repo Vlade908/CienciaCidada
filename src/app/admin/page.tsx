@@ -153,7 +153,7 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full w-full overflow-hidden bg-zinc-950">
+    <div className="flex-1 flex flex-col h-full w-full overflow-hidden bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors">
       {/* 1. Header Corporativo com Navegação Integrada */}
       <AdminHeader
         municipalityName="São Paulo - SP (Piloto Universitário)"
@@ -175,14 +175,14 @@ export default function AdminDashboardPage() {
         <div className="max-w-7xl mx-auto space-y-5">
           {/* Alerta de Feedback de Ação Concluída */}
           {feedbackNotice && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 flex items-center justify-between animate-in fade-in">
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between animate-in fade-in">
               <div className="flex items-center space-x-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>{feedbackNotice}</span>
               </div>
               <button
                 onClick={() => setFeedbackNotice(null)}
-                className="text-zinc-400 hover:text-zinc-200 text-xs font-mono"
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-xs font-mono"
               >
                 ✕
               </button>
@@ -202,13 +202,13 @@ export default function AdminDashboardPage() {
           {/* Cabeçalho da Tabela de Triagem */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
             <div>
-              <h2 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
+              <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
                 <span>Fila de Triagem & Ordens de Despacho</span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-800 text-zinc-300 border border-zinc-700">
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
                   {activeClusters.length} focos prioritários
                 </span>
               </h2>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
                 Ordenação automática por gravidade (fórmula PostGIS: escala + volume + risco hídrico + validação popular).
               </p>
             </div>
@@ -217,19 +217,19 @@ export default function AdminDashboardPage() {
               {/* Botão Exportar CSV */}
               <button
                 onClick={handleExportCSV}
-                className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-medium border border-zinc-800 transition-colors flex items-center space-x-1.5"
+                className="px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium border border-zinc-200 dark:border-zinc-800 transition-colors flex items-center space-x-1.5 shadow-xs"
                 title="Exportar dados das ordens para relatório municipal"
               >
-                <Download className="w-3.5 h-3.5 text-zinc-400" />
+                <Download className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
                 <span className="hidden sm:inline">Exportar CSV</span>
               </button>
 
               {/* Botão Ver no Mapa Global */}
               <Link
                 href="/admin/map"
-                className="px-3.5 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 text-xs font-semibold border border-blue-500/40 transition-colors flex items-center space-x-1.5 shadow-sm"
+                className="px-3.5 py-1.5 rounded-lg bg-blue-600/15 hover:bg-blue-600/25 dark:bg-blue-600/20 dark:hover:bg-blue-600/30 text-blue-700 dark:text-blue-300 text-xs font-semibold border border-blue-500/30 dark:border-blue-500/40 transition-colors flex items-center space-x-1.5 shadow-xs"
               >
-                <MapIcon className="w-3.5 h-3.5 text-blue-400" />
+                <MapIcon className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                 <span>Abrir Mapa Geoespacial</span>
               </Link>
             </div>
