@@ -29,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className="dark" suppressHydrationWarning>
-      <body className="bg-background text-foreground antialiased overflow-hidden select-none">
+      <body className="bg-background text-foreground antialiased select-none">
         <ThemeProvider>
           {children}
         </ThemeProvider>

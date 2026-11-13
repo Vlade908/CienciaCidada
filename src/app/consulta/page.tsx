@@ -155,7 +155,7 @@ function ConsultaContent() {
   }, [filterTab]);
 
   return (
-    <div className="min-h-dvh w-full flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors pb-24">
+    <div className="min-h-dvh w-full flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors pb-36">
       
       {/* 1. HEADER / APP BAR MINIMALISTA STICKY (APPLE HIG / LINEAR STYLE DO STITCH) */}
       <header className="sticky top-0 z-40 flex items-center justify-between px-4 py-3 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-200/60 dark:border-zinc-800/60 transition-all duration-300">

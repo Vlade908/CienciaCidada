@@ -79,7 +79,7 @@ export function ProtocolStatusCard({ details, onNewSearch }: ProtocolStatusCardP
     { 
       id: 4, 
       title: 'Limpo', 
-      desc: isCleaned && details.cleaned_at ? new Date(details.cleaned_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '16:15', 
+      desc: isCleaned && details.cleaned_at ? new Date(details.cleaned_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : isCleaned ? 'Concluído' : 'Aguardando', 
       done: isCleaned 
     },
   ];
@@ -221,7 +221,7 @@ export function ProtocolStatusCard({ details, onNewSearch }: ProtocolStatusCardP
 
         {/* STEPPER / LINHA DO TEMPO ESTILO STITCH / APPLE HIG */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+          <div className="flex items-center justify-between gap-2 flex-wrap text-xs font-semibold text-zinc-500 dark:text-zinc-400">
             <span>Status do Fluxo Operacional</span>
             <span className="font-mono text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
               {progressLabel}
