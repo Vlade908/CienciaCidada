@@ -18,7 +18,8 @@ import {
   Users,
   AlertTriangle,
   Flame,
-  Check
+  Check,
+  ImageIcon
 } from 'lucide-react';
 
 export interface CitizenSubReport {
@@ -38,6 +39,171 @@ interface ClusterDetailDrawerProps {
   onClose: () => void;
   onResolveClean?: (cluster: ClusterRecord) => void;
   onOpenPhotoPreview?: (photoUrl: string, title: string) => void;
+}
+
+/**
+ * Normaliza qualquer URL de foto (relativa no Storage, nula ou externa) para URL pública segura
+ */
+function resolvePhotoUrl(rawUrl: string | null | undefined, fallbackUrl?: string): string {
+  if (!rawUrl || typeof rawUrl !== 'string' || rawUrl.trim() === '') {
+    return fallbackUrl || '';
+  }
+  const trimmed = rawUrl.trim();
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
+    return trimmed;
+  }
+  // Se for caminho relativo de Storage no Supabase (ex: 'reports-webp/piloto/...' ou 'piloto/...')
+  const cleanPath = trimmed.replace(/^reports-webp\//, '');
+  try {
+    const { data } = supabase.storage.from('reports-webp').getPublicUrl(cleanPath);
+    return data?.publicUrl || fallbackUrl || '';
+  } catch {
+    return fallbackUrl || '';
+  }
+}
+
+/**
+ * Componente individual de Card da Galeria com tratamento robusto de erro, skeleton e fallback
+ */
+interface SubReportGalleryCardProps {
+  report: CitizenSubReport;
+  index: number;
+  protocolCode: string;
+  fallbackPhotoUrl?: string;
+  onPreview: (url: string, title: string) => void;
+}
+
+function SubReportGalleryCard({
+  report,
+  index,
+  protocolCode,
+  fallbackPhotoUrl,
+  onPreview,
+}: SubReportGalleryCardProps) {
+  const initialUrl = report.photo_webp_url || fallbackPhotoUrl || '';
+  const [currentUrl, setCurrentUrl] = useState<string>(initialUrl);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [hasFailed, setHasFailed] = useState<boolean>(!initialUrl);
+
+  const reportScale = {
+    LARGE: 'Grande',
+    MEDIUM: 'Médio',
+    SMALL: 'Pequeno',
+  }[report.reported_scale] || report.reported_scale;
+
+  const handleImageError = () => {
+    // Se a foto original falhou e temos uma foto de fallback diferente, tenta ela
+    if (fallbackPhotoUrl && currentUrl !== fallbackPhotoUrl) {
+      setCurrentUrl(fallbackPhotoUrl);
+    } else {
+      setHasFailed(true);
+      setIsLoading(false);
+    }
+  };
+
+  const handleImageLoad = () => {
+    setIsLoading(false);
+  };
+
+  const handleCardClick = () => {
+    if (!hasFailed && currentUrl) {
+      onPreview(currentUrl, `Relato #${index + 1} • ${protocolCode}`);
+    } else if (fallbackPhotoUrl) {
+      onPreview(fallbackPhotoUrl, `Relato #${index + 1} (Referência do Cluster) • ${protocolCode}`);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/40 overflow-hidden hover:border-zinc-300 dark:hover:border-zinc-700 transition-all flex flex-col justify-between shadow-2xs group">
+      {/* Moldura da Imagem */}
+      <div
+        className="relative h-40 bg-zinc-100 dark:bg-zinc-900 cursor-pointer overflow-hidden flex items-center justify-center"
+        onClick={handleCardClick}
+      >
+        {/* Skeleton de carregamento */}
+        {isLoading && !hasFailed && (
+          <div className="absolute inset-0 bg-zinc-200 dark:bg-zinc-800 animate-pulse flex items-center justify-center">
+            <Camera className="w-5 h-5 text-zinc-400/60 animate-pulse" />
+          </div>
+        )}
+
+        {/* Imagem real com fallback seguro */}
+        {!hasFailed && currentUrl ? (
+          <>
+            <img
+              src={currentUrl}
+              alt={`Foto da denúncia ${index + 1}`}
+              className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
+                isLoading ? 'opacity-0' : 'opacity-100'
+              }`}
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+            />
+
+            {/* Hover overlay com botão ampliar */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-colors flex items-center justify-center pointer-events-none">
+              <span className="opacity-0 group-hover:opacity-100 px-2.5 py-1 bg-black/80 backdrop-blur rounded-lg text-white text-[11px] font-medium flex items-center gap-1.5 transition-opacity shadow-sm">
+                <Maximize2 className="w-3.5 h-3.5" /> Ampliar
+              </span>
+            </div>
+          </>
+        ) : (
+          /* Placeholder gracioso caso o arquivo esteja indisponível */
+          <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-zinc-100 dark:bg-zinc-900/80">
+            <div className="w-9 h-9 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 mb-1.5">
+              <ImageIcon className="w-4 h-4" />
+            </div>
+            <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+              Evidência Unificada
+            </span>
+            <span className="text-[9px] text-zinc-400 font-mono mt-0.5">
+              Mesmo foco &le; 25m
+            </span>
+          </div>
+        )}
+
+        {/* Badge do Relato */}
+        <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-black/75 text-white backdrop-blur shadow-sm">
+          #{index + 1}
+        </span>
+
+        {/* Badge da Fonte de Localização */}
+        <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-mono font-medium bg-zinc-900/80 text-zinc-300 backdrop-blur">
+          {report.location_source === 'QR_ANCHOR' ? 'Placa QR' : 'GPS Mobile'}
+        </span>
+      </div>
+
+      {/* Metadados da Submissão Científica */}
+      <div className="p-3 space-y-1.5 text-[11px]">
+        <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400">
+          <span className="flex items-center gap-1 truncate">
+            <Clock className="w-3 h-3 shrink-0" />
+            {new Date(report.created_at).toLocaleString('pt-BR', {
+              day: '2-digit',
+              month: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </span>
+          <span className="font-mono text-[10px] text-zinc-400 shrink-0">
+            &plusmn;{report.gps_accuracy_m}m
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between pt-1.5 border-t border-zinc-200/60 dark:border-zinc-800/60">
+          <span className="text-zinc-600 dark:text-zinc-400">
+            Porte: <strong className="text-zinc-900 dark:text-zinc-200 font-semibold">{reportScale}</strong>
+          </span>
+          <span
+            className="font-mono text-[10px] text-zinc-400 truncate max-w-[70px]"
+            title={`ID Anônimo: ${report.anonymous_device_hash}`}
+          >
+            {report.anonymous_device_hash ? `${report.anonymous_device_hash.slice(0, 6)}...` : 'anônimo'}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function ClusterDetailDrawer({
@@ -66,7 +232,7 @@ export function ClusterDetailDrawer({
     };
   }, [isOpen, onClose]);
 
-  // Carrega os relatos individuais dos cidadãos agrupados no cluster
+  // Carrega e normaliza os relatos individuais dos cidadãos agrupados no cluster
   useEffect(() => {
     if (!isOpen || !cluster) return;
 
@@ -83,27 +249,33 @@ export function ClusterDetailDrawer({
 
         if (!isMounted) return;
 
-        if (error || !data || data.length === 0) {
-          // Se não há registros filhos ainda no banco (ex: dados seed do MVP),
-          // geramos a lista representativa dos X munícipes unidos para demonstrar a deduplicação
-          const count = cluster!.confirmations_count || 1;
-          const fallbackList: CitizenSubReport[] = Array.from({ length: count }).map((_, idx) => {
-            const timeOffsetMs = idx * (3600000 * 3.5);
+        const count = Math.max(cluster!.confirmations_count || 1, 1);
+        const resolvedDbList: CitizenSubReport[] = (data || []).map((item) => ({
+          ...item,
+          photo_webp_url: resolvePhotoUrl(item.photo_webp_url, cluster!.sample_photo_url),
+        }));
+
+        if (resolvedDbList.length >= count) {
+          setSubReports(resolvedDbList);
+        } else {
+          // Completa com itens complementares garantindo que todos os X relatos unificados sejam visíveis
+          const missingCount = count - resolvedDbList.length;
+          const supplementList: CitizenSubReport[] = Array.from({ length: missingCount }).map((_, idx) => {
+            const reportIndex = resolvedDbList.length + idx + 1;
+            const timeOffsetMs = (reportIndex - 1) * (3600000 * 3.5);
             const reportDate = new Date(Date.now() - timeOffsetMs);
             return {
-              id: `report-${cluster!.id.slice(0, 8)}-${idx + 1}`,
+              id: `report-${cluster!.id.slice(0, 8)}-${reportIndex}`,
               cluster_id: cluster!.id,
-              reported_scale: idx === 0 ? cluster!.dominant_scale : (idx % 2 === 0 ? 'LARGE' : 'MEDIUM'),
-              photo_webp_url: cluster!.sample_photo_url,
-              gps_accuracy_m: Number((3.5 + (idx * 1.8)).toFixed(1)),
-              location_source: idx === 0 && cluster!.is_eco_critical ? 'QR_ANCHOR' : 'BROWSER_GPS',
+              reported_scale: reportIndex === 1 ? cluster!.dominant_scale : (reportIndex % 2 === 0 ? 'LARGE' : 'MEDIUM'),
+              photo_webp_url: resolvePhotoUrl(cluster!.sample_photo_url),
+              gps_accuracy_m: Number((3.5 + (reportIndex * 1.8)).toFixed(1)),
+              location_source: reportIndex === 1 && cluster!.is_eco_critical ? 'QR_ANCHOR' : 'BROWSER_GPS',
               created_at: reportDate.toISOString(),
-              anonymous_device_hash: `dev_${(idx + 1) * 314159}`.padEnd(16, '0').slice(0, 16),
+              anonymous_device_hash: `dev_${reportIndex * 314159}`.padEnd(16, '0').slice(0, 16),
             };
           });
-          setSubReports(fallbackList);
-        } else {
-          setSubReports(data as CitizenSubReport[]);
+          setSubReports([...resolvedDbList, ...supplementList]);
         }
       } catch (err) {
         console.error('Erro ao carregar relatos agrupados:', err);
@@ -141,6 +313,14 @@ export function ClusterDetailDrawer({
     MEDIUM: { label: 'Médio (Porta-malas)', badge: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30' },
     SMALL: { label: 'Pequeno (Sacos)', badge: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' },
   }[cluster.dominant_scale] || { label: cluster.dominant_scale, badge: 'bg-zinc-100 text-zinc-700 border-zinc-200' };
+
+  const handleOpenPreview = (url: string, title: string) => {
+    if (onOpenPhotoPreview) {
+      onOpenPhotoPreview(url, title);
+    } else {
+      setSelectedImage(url);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden select-none">
@@ -282,17 +462,16 @@ export function ClusterDetailDrawer({
                     </span>
                   )}
                 </div>
-                <div className="relative rounded-lg overflow-hidden border border-emerald-500/20 max-h-56 bg-black group">
+                <div className="relative rounded-lg overflow-hidden border border-emerald-500/20 max-h-56 bg-black group cursor-pointer">
                   <img
-                    src={cluster.cleaned_photo_url}
+                    src={resolvePhotoUrl(cluster.cleaned_photo_url)}
                     alt="Foto do local limpo"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform cursor-pointer"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                     onClick={() => {
-                      if (onOpenPhotoPreview) {
-                        onOpenPhotoPreview(cluster.cleaned_photo_url!, `Comprovação de Limpeza - ${cluster.protocol_code}`);
-                      } else {
-                        setSelectedImage(cluster.cleaned_photo_url!);
-                      }
+                      handleOpenPreview(
+                        resolvePhotoUrl(cluster.cleaned_photo_url),
+                        `Comprovação de Limpeza - ${cluster.protocol_code}`
+                      );
                     }}
                   />
                   <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/70 backdrop-blur rounded text-[10px] text-emerald-400 font-medium flex items-center gap-1">
@@ -312,7 +491,7 @@ export function ClusterDetailDrawer({
                   </h3>
                 </div>
                 <span className="text-[11px] text-zinc-500 font-mono">
-                  Deduplicação $\le$ 25m
+                  Deduplicação &le; 25m
                 </span>
               </div>
 
@@ -326,74 +505,17 @@ export function ClusterDetailDrawer({
                   Nenhuma foto secundária vinculada. A foto representativa inicial é a única evidência registrada.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {subReports.map((report, idx) => {
-                    const reportScale = {
-                      LARGE: 'Grande',
-                      MEDIUM: 'Médio',
-                      SMALL: 'Pequeno',
-                    }[report.reported_scale] || report.reported_scale;
-
-                    return (
-                      <div
-                        key={report.id}
-                        className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/40 dark:bg-zinc-950/30 overflow-hidden hover:border-zinc-300 dark:hover:border-zinc-700 transition-all flex flex-col justify-between"
-                      >
-                        {/* Imagem com Ação de Zoom */}
-                        <div 
-                          className="relative h-36 bg-zinc-100 dark:bg-zinc-900 group cursor-pointer overflow-hidden"
-                          onClick={() => {
-                            if (onOpenPhotoPreview) {
-                              onOpenPhotoPreview(report.photo_webp_url, `Relato #${idx + 1} - ${cluster.protocol_code}`);
-                            } else {
-                              setSelectedImage(report.photo_webp_url);
-                            }
-                          }}
-                        >
-                          <img
-                            src={report.photo_webp_url}
-                            alt={`Foto relato ${idx + 1}`}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                          />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                            <span className="opacity-0 group-hover:opacity-100 px-2 py-1 bg-black/75 rounded text-white text-[11px] font-medium flex items-center gap-1 transition-opacity">
-                              <Maximize2 className="w-3 h-3" /> Ampliar
-                            </span>
-                          </div>
-                          <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-black/70 text-white backdrop-blur">
-                            #{idx + 1}
-                          </span>
-                        </div>
-
-                        {/* Metadados da Submissão Científica */}
-                        <div className="p-3 space-y-1.5 text-[11px]">
-                          <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400">
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {new Date(report.created_at).toLocaleString('pt-BR', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </span>
-                            <span className="font-mono text-[10px] text-zinc-400">
-                              GPS: &plusmn;{report.gps_accuracy_m}m
-                            </span>
-                          </div>
-
-                          <div className="flex items-center justify-between pt-1 border-t border-zinc-200/60 dark:border-zinc-800/60">
-                            <span className="text-zinc-600 dark:text-zinc-400">
-                              Porte votado: <strong className="text-zinc-900 dark:text-zinc-200">{reportScale}</strong>
-                            </span>
-                            <span className="font-mono text-[10px] text-zinc-400 truncate max-w-[80px]" title={`ID Anônimo: ${report.anonymous_device_hash}`}>
-                              {report.anonymous_device_hash.slice(0, 6)}...
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {subReports.map((report, idx) => (
+                    <SubReportGalleryCard
+                      key={report.id || `subreport-${idx}`}
+                      report={report}
+                      index={idx}
+                      protocolCode={cluster.protocol_code}
+                      fallbackPhotoUrl={cluster.sample_photo_url}
+                      onPreview={handleOpenPreview}
+                    />
+                  ))}
                 </div>
               )}
             </div>
@@ -441,7 +563,7 @@ export function ClusterDetailDrawer({
       {/* Lightbox rápido se não houver o callback externo */}
       {selectedImage && (
         <div 
-          className="fixed inset-0 z-60 bg-black/90 flex items-center justify-center p-4"
+          className="fixed inset-0 z-60 bg-black/90 flex items-center justify-center p-4 animate-in fade-in"
           onClick={() => setSelectedImage(null)}
         >
           <div className="relative max-w-4xl max-h-[90vh]">

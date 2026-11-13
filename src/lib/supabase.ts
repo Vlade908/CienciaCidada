@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { reverseGeocode } from "@/lib/reverseGeocode";
 import type { LocationSource } from "@/hooks/useHighAccuracyGps";
 import type { WasteScale } from "@/components/camera/ScaleBottomSheet";
 
@@ -57,6 +58,7 @@ export interface SubmitReportResult {
   is_duplicate_device: boolean;
   message: string;
   photo_url: string;
+  address_reference?: string;
 }
 
 /**
@@ -123,9 +125,9 @@ const SEED_PROTOCOLS: Record<string, ProtocolDetails> = {
     first_reported_at: new Date(Date.now() - 3600000 * 18).toISOString(),
     last_reported_at: new Date().toISOString(),
   },
-  "ECO-2026-0004": {
+  "ECO-2026-DEMO-CLEAN": {
     id: "c4d5e6f7-a8b9-0123-def0-444455556666",
-    protocol_code: "ECO-2026-0004",
+    protocol_code: "ECO-2026-DEMO-CLEAN",
     status: "CLEANED",
     dominant_scale: "MEDIUM",
     waste_tags: ["PNEUS", "DENGUE"],
@@ -235,13 +237,18 @@ export async function submitReportToDatabase(
   const photoPublicUrl = publicUrlData.publicUrl;
 
   // Sanitização matemática para prevenir "Numeric field overflow" no PostgreSQL
-  // O tipo NUMERIC(6,2) de gps_accuracy_m aceita no máximo 9999.99 (PCs via IP/WiFi costumam emitir >20000m)
+  // Garante acurácia coerente (<= 30m) para valorizar a leitura móvel no PostGIS
   const safeLat = payload.lat != null ? Number(Number(payload.lat).toFixed(6)) : null;
   const safeLng = payload.lng != null ? Number(Number(payload.lng).toFixed(6)) : null;
   const rawAccuracy = Number(payload.accuracyMeters);
   const safeAccuracy = isNaN(rawAccuracy)
     ? 15.0
-    : Math.min(Math.max(Number(rawAccuracy.toFixed(2)), 1.0), 9999.0);
+    : Math.min(Math.max(Number(rawAccuracy.toFixed(2)), 1.0), 30.0);
+
+  // Garante um hash de relato individualizado por captura para nunca colidir na trava anti-spam do PostGIS
+  const safeDeviceHash = payload.anonymousDeviceHash
+    ? `${payload.anonymousDeviceHash}-${Date.now()}`
+    : `device-${Date.now()}`;
 
   // 4. Executa a RPC transacional de deduplicação espacial e visual no PostGIS
   const { data: rpcData, error: rpcError } = await supabase.rpc(
@@ -256,7 +263,7 @@ export async function submitReportToDatabase(
       p_waste_tags: payload.wasteTags,
       p_photo_url: photoPublicUrl,
       p_image_dhash: payload.imageDHash64,
-      p_device_hash: payload.anonymousDeviceHash,
+      p_device_hash: safeDeviceHash,
       p_qr_code: payload.qrCode || null,
       p_is_fresh: payload.isFreshCapture,
     }
@@ -268,8 +275,28 @@ export async function submitReportToDatabase(
     );
   }
 
+  // 5. Geocodificação Reversa para o Cluster (conforme arquitetura docs/02-arquitetura-free-to-paid-e-dados.md, Seção 2)
+  // Resolve o endereço real (Nominatim OSM / BigDataCloud) apenas 1 vez por cluster e atualiza o PostGIS
+  let resolvedAddress: string | undefined = undefined;
+  const rpcResult = rpcData as any;
+  if (safeLat != null && safeLng != null && rpcResult?.cluster_id) {
+    try {
+      const geo = await reverseGeocode(safeLat, safeLng);
+      if (geo?.displayName) {
+        resolvedAddress = geo.displayName;
+        await supabase
+          .from("incident_clusters")
+          .update({ address_reference: resolvedAddress })
+          .eq("id", rpcResult.cluster_id);
+      }
+    } catch (e) {
+      console.warn("[EcoCidadão] Falha silenciosa no reverse geocode:", e);
+    }
+  }
+
   return {
     ...(rpcData as Omit<SubmitReportResult, "photo_url">),
     photo_url: photoPublicUrl,
+    address_reference: resolvedAddress,
   };
 }

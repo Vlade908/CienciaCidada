@@ -8,11 +8,12 @@ import {
   ZapOff,
   ImagePlus,
   ShieldCheck,
-  Sparkles,
   RefreshCcw,
   Search,
+  X,
+  MapPin,
+  Sparkles,
 } from "lucide-react";
-import { GpsStatusPill } from "@/components/camera/GpsStatusPill";
 import { QrAnchorBanner } from "@/components/camera/QrAnchorBanner";
 import type { GpsState } from "@/hooks/useHighAccuracyGps";
 import type { QrAnchorData } from "@/lib/qrAnchors";
@@ -27,6 +28,7 @@ export interface CameraViewfinderProps {
   qrCodeLabel?: string | null;
   qrAnchor?: QrAnchorData | null;
   convergenceProgress?: number;
+  locationHint?: string;
   onRetryGps?: () => void;
   onPhotoProcessed: (photo: EdgeProcessedPhoto) => void;
 }
@@ -37,6 +39,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
   qrCodeLabel = null,
   qrAnchor = null,
   convergenceProgress = 25,
+  locationHint,
   onRetryGps,
   onPhotoProcessed,
 }) => {
@@ -49,6 +52,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
   const [torchSupported, setTorchSupported] = useState(false);
   const [torchActive, setTorchActive] = useState(false);
   const [shutterFlash, setShutterFlash] = useState(false);
+  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
 
   const { processCaptureBlob, isProcessing } = useEdgeImageProcessor();
 
@@ -69,7 +73,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
       !navigator.mediaDevices.getUserMedia
     ) {
       setCameraError(
-        "Acesso direto à câmera requer HTTPS ou uso do botão de captura nativa abaixo."
+        "Acesso direto à câmera requer HTTPS ou uso do botão de galeria/captura nativa abaixo."
       );
       return;
     }
@@ -78,7 +82,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: {
-          facingMode: { ideal: "environment" },
+          facingMode: { ideal: facingMode },
           width: { ideal: 1920 },
           height: { ideal: 1080 },
         },
@@ -103,10 +107,10 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
     } catch {
       setCameraReady(false);
       setCameraError(
-        "Câmera ao vivo não autorizada. Toque no botão central para usar a câmera do sistema."
+        "Câmera ao vivo não autorizada. Toque no botão central ou use a galeria."
       );
     }
-  }, [stopStream]);
+  }, [stopStream, facingMode]);
 
   useEffect(() => {
     startCamera();
@@ -130,6 +134,10 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
     }
   }, [torchActive]);
 
+  const toggleFlipCamera = useCallback(() => {
+    setFacingMode((prev) => (prev === "environment" ? "user" : "environment"));
+  }, []);
+
   const handleShutterPress = useCallback(async (e?: React.MouseEvent) => {
     e?.preventDefault();
     e?.stopPropagation();
@@ -146,7 +154,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
     }
 
     setShutterFlash(true);
-    setTimeout(() => setShutterFlash(false), 150);
+    setTimeout(() => setShutterFlash(false), 120);
 
     const captureCanvas = document.createElement("canvas");
     captureCanvas.width = videoEl.videoWidth;
@@ -191,10 +199,12 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
     [onPhotoProcessed, processCaptureBlob]
   );
 
+  const isGpsLocked = gpsState === "LOCKED" || gpsState === "QR_ANCHORED" || Boolean(qrAnchor);
+
   return (
     <section
       aria-label="Visor da câmera para registro de descarte irregular"
-      className="relative flex h-dvh w-full flex-col justify-between overflow-hidden bg-zinc-950 text-zinc-50 select-none"
+      className="relative flex h-dvh w-full flex-col justify-between overflow-hidden bg-black text-white select-none"
     >
       <input
         ref={fileInputRef}
@@ -206,207 +216,211 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
         aria-hidden="true"
       />
 
+      {/* VÍDEO FULL-SCREEN */}
       <video
         ref={videoRef}
         playsInline
         muted
         autoPlay
-        className="absolute inset-0 size-full object-cover"
+        className="absolute inset-0 size-full object-cover z-0"
       />
 
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(9,9,11,0.65)_0%,transparent_24%,transparent_68%,rgba(9,9,11,0.88)_100%)]"
+      {/* OVERLAYS CINEMATOGRÁFICOS STITCH */}
+      <div 
+        aria-hidden="true" 
+        className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-black/85 via-black/40 to-transparent z-10" 
+      />
+      <div 
+        aria-hidden="true" 
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/90 via-black/50 to-transparent z-10" 
       />
 
-      <div
-        aria-hidden="true"
-        className={[
-          "pointer-events-none absolute inset-0 bg-white transition-opacity duration-150 ease-out",
-          shutterFlash ? "opacity-75" : "opacity-0",
-        ].join(" ")}
-      />
+      {/* GRADE 3X3 DE ENQUADRAMENTO SUTIL (RULE OF THIRDS) */}
+      <div 
+        aria-hidden="true" 
+        className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3 z-10 opacity-20"
+      >
+        <div className="border-r border-b border-white/60" />
+        <div className="border-r border-b border-white/60" />
+        <div className="border-b border-white/60" />
+        <div className="border-r border-b border-white/60" />
+        <div className="border-r border-b border-white/60" />
+        <div className="border-b border-white/60" />
+        <div className="border-r border-b border-white/60" />
+        <div className="border-r border-b border-white/60" />
+        <div />
+      </div>
 
-      {/* HUD SUPERIOR */}
-      <header className="relative z-20 flex flex-col items-center gap-2 px-4 pt-[max(1rem,env(safe-area-inset-top))]">
-        <div className="flex w-full max-w-sm items-center justify-between gap-2">
-          <GpsStatusPill
-            state={gpsState}
-            accuracyMeters={accuracyMeters}
-            qrCodeLabel={qrAnchor?.code || qrCodeLabel}
-            convergenceProgress={convergenceProgress}
-            onRetry={onRetryGps}
-          />
-
+      {/* TOP HUD: NAVEGAÇÃO, TELEMETRIA GPS E FLASH STITCH */}
+      <header className="relative z-30 pt-[max(1rem,env(safe-area-inset-top))] px-4 flex flex-col gap-2">
+        <div className="flex items-center justify-between w-full max-w-sm mx-auto">
+          {/* Botão Fechar / Voltar à Home */}
           <Link
-            href="/consulta"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-900/85 hover:bg-zinc-800 border border-white/15 text-zinc-100 text-xs font-semibold backdrop-blur-md active:scale-95 transition-all shadow-md shrink-0"
-            title="Acompanhar meus chamados pelo protocolo"
+            href="/"
+            className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-xl text-white border border-white/15 flex items-center justify-center active:scale-90 transition-all shadow-md"
+            title="Fechar câmera e voltar para a Central"
+            aria-label="Fechar câmera"
           >
-            <Search className="size-3.5 text-emerald-400" aria-hidden="true" />
-            <span>Consultar</span>
+            <X className="w-5 h-5" />
           </Link>
+
+          {/* Telemetria GPS Stitch com Ping Verde */}
+          <div className="bg-black/60 backdrop-blur-xl border border-white/15 px-3.5 py-1.5 rounded-full flex items-center gap-2 shadow-lg">
+            <span className="relative flex h-2 w-2 shrink-0">
+              {isGpsLocked && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              )}
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${isGpsLocked ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+            </span>
+
+            <MapPin className={`w-3.5 h-3.5 shrink-0 ${isGpsLocked ? 'text-emerald-400' : 'text-amber-400'}`} />
+
+            <div className="flex flex-col text-left">
+              <span className="text-[11px] text-white font-bold leading-none tracking-tight">
+                {qrAnchor 
+                  ? `Placa ${qrAnchor.code}` 
+                  : isGpsLocked 
+                    ? `GPS Travado (±${Math.round(accuracyMeters || 5)}m)` 
+                    : "Calibrando GPS..."}
+              </span>
+              <span className="text-[9px] text-white/70 leading-none mt-0.5 font-mono">
+                {qrAnchor?.addressHint ? "Ponto Físico Monitorado" : (locationHint || "Ponto Georreferenciado")}
+              </span>
+            </div>
+          </div>
+
+          {/* Botão de Flash / Lanterna */}
+          <button
+            type="button"
+            onClick={toggleTorch}
+            disabled={!torchSupported || isProcessing}
+            className={`w-10 h-10 rounded-full bg-black/45 backdrop-blur-xl border border-white/15 flex flex-col items-center justify-center active:scale-90 transition-all shadow-md ${
+              !torchSupported ? 'opacity-40' : ''
+            }`}
+            title={torchActive ? "Desligar lanterna" : "Ligar lanterna"}
+            aria-label="Alternar flash"
+          >
+            {torchActive ? (
+              <Zap className="w-4 h-4 text-amber-300 fill-amber-300" />
+            ) : (
+              <ZapOff className="w-4 h-4 text-white" />
+            )}
+            <span className="text-[7px] font-bold text-emerald-400 leading-none -mt-0.5">
+              {torchActive ? "ON" : "OFF"}
+            </span>
+          </button>
         </div>
 
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-zinc-950/60 px-3 py-1 text-[11px] font-medium text-zinc-200 backdrop-blur-sm">
-          <ShieldCheck className="size-3.5 text-emerald-400" aria-hidden="true" />
-          <span>100% Anônimo · EXIF pessoal removido no celular</span>
-        </div>
-
-        {/* BANNER FLUTUANTE DE ÂNCORA QR CODE */}
+        {/* BANNER DE ÂNCORA QR CODE (SE PRESENTE) */}
         {qrAnchor && (
-          <div className="w-full pt-1">
+          <div className="w-full max-w-sm mx-auto pt-1">
             <QrAnchorBanner anchor={qrAnchor} />
           </div>
         )}
       </header>
 
-      {/* CENTRO: GUIA ÓPTICO */}
-      <div className="relative z-10 mx-auto flex w-full max-w-sm flex-1 flex-col items-center justify-center px-6">
-        <div className="relative flex aspect-[4/3] w-full flex-col items-center justify-end rounded-3xl p-4">
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 320 240"
-            fill="none"
-            className="pointer-events-none absolute inset-0 size-full"
-          >
-            <rect
-              x="2"
-              y="2"
-              width="316"
-              height="236"
-              rx="22"
-              stroke="rgba(255,255,255,0.18)"
-              strokeWidth="1"
-            />
-            <path
-              d="M2 34 V24 C2 11.85 11.85 2 24 2 H34"
-              stroke="#34d399"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-            <path
-              d="M286 2 H296 C308.15 2 318 11.85 318 24 V34"
-              stroke="#34d399"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-            <path
-              d="M2 206 V216 C2 228.15 11.85 238 24 238 H34"
-              stroke="#34d399"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-            <path
-              d="M286 238 H296 C308.15 238 318 228.15 318 216 V206"
-              stroke="#34d399"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-          </svg>
-
-          {cameraError && (
-            <div className="my-auto flex flex-col items-center gap-3 text-center">
-              <div className="flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-zinc-900/90 text-emerald-400 shadow-md">
-                <Camera className="size-6" aria-hidden="true" />
-              </div>
-              <p className="max-w-[26ch] text-xs leading-relaxed text-zinc-100">
-                {cameraError}
-              </p>
-              <button
-                type="button"
-                onClick={startCamera}
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-white/15 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/25"
-              >
-                <RefreshCcw className="size-3.5" aria-hidden="true" />
-                <span>Tentar câmera ao vivo</span>
-              </button>
+      {/* CENTRO: MENSAGEM / GUIAS DE ENQUADRAMENTO */}
+      <div className="relative z-10 mx-auto flex w-full max-w-sm flex-1 flex-col items-center justify-center px-6 pointer-events-none">
+        {cameraError && (
+          <div className="pointer-events-auto my-auto flex flex-col items-center gap-3 text-center bg-black/70 backdrop-blur-md p-5 rounded-2xl border border-white/15">
+            <div className="flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-zinc-900/90 text-emerald-400 shadow-md">
+              <Camera className="size-6" />
             </div>
-          )}
-
-          <div className="rounded-2xl border border-white/10 bg-zinc-950/80 px-3.5 py-2 text-center backdrop-blur-md">
-            <p className="text-xs font-medium tracking-tight text-zinc-100">
-              Enquadre o descarte mostrando parte da calçada ou rua
+            <p className="max-w-[26ch] text-xs leading-relaxed text-zinc-200">
+              {cameraError}
             </p>
+            <button
+              type="button"
+              onClick={startCamera}
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-white/20 hover:bg-white/30 px-4 py-1.5 text-xs font-semibold text-white transition-colors"
+            >
+              <RefreshCcw className="size-3.5" />
+              <span>Tentar novamente</span>
+            </button>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* BASE (THUMB ZONE) */}
-      <footer className="relative z-20 flex flex-col items-center gap-3 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-        <div className="flex w-full max-w-xs items-center justify-between">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              fileInputRef.current?.click();
-            }}
-            disabled={isProcessing}
-            aria-label="Abrir câmera nativa do sistema ou escolher foto"
-            className="flex size-14 items-center justify-center rounded-full border border-white/15 bg-zinc-900/80 text-zinc-100 backdrop-blur-md transition-transform duration-150 active:scale-95 disabled:opacity-50"
-          >
-            <ImagePlus className="size-5" aria-hidden="true" />
-          </button>
-
-          {/* OBTURADOR PRINCIPAL */}
-          <button
-            type="button"
-            onClick={handleShutterPress}
-            disabled={isProcessing}
-            aria-label="Fotografar descarte irregular (Toque 1 de 3)"
-            className="group relative flex size-[76px] items-center justify-center rounded-full border-4 border-white/90 bg-white/10 p-1 shadow-[0_12px_30px_rgba(0,0,0,0.6)] transition-transform duration-150 ease-out active:scale-95 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-400"
-          >
-            <span
-              className={[
-                "flex size-16 items-center justify-center rounded-full transition-all duration-150",
-                isProcessing
-                  ? "bg-emerald-500 text-emerald-950"
-                  : "bg-white text-zinc-950 group-hover:bg-zinc-100 group-active:scale-90",
-              ].join(" ")}
-            >
-              {isProcessing ? (
-                <Sparkles
-                  className="size-6 animate-spin text-emerald-950"
-                  aria-hidden="true"
-                />
-              ) : (
-                <Camera className="size-7 stroke-[2.2]" aria-hidden="true" />
-              )}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={toggleTorch}
-            disabled={!torchSupported || isProcessing}
-            aria-label={
-              torchActive ? "Desligar lanterna" : "Ligar lanterna para foto noturna"
-            }
-            aria-pressed={torchActive}
-            className={[
-              "flex size-14 items-center justify-center rounded-full border backdrop-blur-md transition-all duration-150 active:scale-95",
-              torchActive
-                ? "border-amber-400/60 bg-amber-400/25 text-amber-200"
-                : "border-white/15 bg-zinc-900/80 text-zinc-100",
-              !torchSupported && "opacity-35",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            {torchActive ? (
-              <Zap className="size-5 fill-amber-300" aria-hidden="true" />
-            ) : (
-              <ZapOff className="size-5" aria-hidden="true" />
-            )}
-          </button>
+      {/* BOTTOM HUD: GALERIA, SHUTTER IPHONE E FLIP STITCH */}
+      <footer className="relative z-30 pb-[max(1.5rem,env(safe-area-inset-bottom))] px-4 flex flex-col items-center gap-3.5 mb-2">
+        
+        {/* GUIA DE INSTRUÇÃO DISCRETO */}
+        <div className="rounded-full border border-white/15 bg-black/60 px-4 py-1.5 backdrop-blur-md shadow-md">
+          <p className="text-[11px] font-medium text-white/90">
+            {isProcessing ? "Otimizando imagem WebP..." : "Enquadre o entulho e aperte o botão branco"}
+          </p>
         </div>
 
-        <p className="text-xs font-medium tracking-tight text-zinc-200">
-          {isProcessing
-            ? "Otimizando foto e removendo dados pessoais..."
-            : "Toque 1 de 3 · Tire a foto para informar o tamanho"}
-        </p>
+        {/* FILEIRA DE CONTROLES DO OBTURADOR STITCH */}
+        <div className="w-full max-w-xs flex items-center justify-around px-2">
+          
+          {/* Botão de Galeria de Fotos */}
+          <div className="flex flex-col items-center">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                fileInputRef.current?.click();
+              }}
+              disabled={isProcessing}
+              aria-label="Abrir galeria de fotos"
+              className="w-12 h-12 rounded-2xl bg-black/50 backdrop-blur-xl border border-white/20 p-1 active:scale-90 transition-transform shadow-xl flex items-center justify-center disabled:opacity-50"
+            >
+              <ImagePlus className="w-5 h-5 text-white" />
+            </button>
+            <span className="text-[10px] text-white/70 mt-1 font-medium">Galeria</span>
+          </div>
+
+          {/* OBTURADOR ESTILO IPHONE STITCH (80px) */}
+          <div className="relative flex items-center justify-center">
+            <button
+              type="button"
+              onClick={handleShutterPress}
+              disabled={isProcessing}
+              aria-label="Tirar foto do descarte"
+              className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center p-1 active:scale-95 transition-transform duration-100 shadow-[0_4px_24px_rgba(0,0,0,0.6)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-400"
+            >
+              <div className="w-full h-full rounded-full bg-white active:bg-zinc-200 transition-colors flex items-center justify-center">
+                {isProcessing && (
+                  <Sparkles className="w-6 h-6 animate-spin text-zinc-950" />
+                )}
+              </div>
+            </button>
+          </div>
+
+          {/* Botão de Inverter Câmera (Flip) */}
+          <div className="flex flex-col items-center">
+            <button
+              type="button"
+              onClick={toggleFlipCamera}
+              disabled={isProcessing}
+              aria-label="Inverter câmera"
+              className="w-12 h-12 rounded-2xl bg-black/50 backdrop-blur-xl border border-white/20 text-white flex items-center justify-center active:rotate-180 transition-transform duration-300 shadow-xl disabled:opacity-50"
+            >
+              <RefreshCcw className="w-5 h-5 text-white" />
+            </button>
+            <span className="text-[10px] text-white/70 mt-1 font-medium">Girar</span>
+          </div>
+
+        </div>
+
+        {/* RODAPÉ DE PRIVACIDADE E ANONIMATO LGPD STITCH */}
+        <div className="flex items-center justify-center gap-1.5 opacity-85 pt-1">
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+          <span className="text-[11px] text-white/80 font-medium tracking-tight text-center">
+            Reporte 100% Anônimo • Metadados protegidos pela LGPD
+          </span>
+        </div>
+
       </footer>
+
+      {/* SIMULAÇÃO DE FLASH BRANCO DE OBTURADOR */}
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-0 bg-white transition-opacity duration-150 z-50 ${
+          shutterFlash ? "opacity-85" : "opacity-0"
+        }`}
+      />
     </section>
   );
 };
