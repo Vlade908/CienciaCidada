@@ -332,28 +332,28 @@ export function HotspotMap({
   const handleResetNorth = () => mapRef.current?.resetNorthPitch();
 
   return (
-    <div className={`relative w-full h-full overflow-hidden bg-zinc-100 dark:bg-zinc-950 transition-colors ${className}`}>
+    <div className={`relative w-full h-full overflow-hidden bg-[#f1f3f0] dark:bg-zinc-950 transition-colors ${className}`}>
       <div ref={mapContainerRef} className="w-full h-full" />
 
       {/* Controles Flutuantes com Suporte a Modo Claro/Escuro */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col space-y-1.5 bg-white/90 dark:bg-zinc-950/80 backdrop-blur-md p-1 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-lg transition-colors">
+      <div className="absolute top-4 right-4 z-10 flex flex-col space-y-1.5 bg-[#f8faf7]/95 dark:bg-zinc-950/80 backdrop-blur-md p-1 rounded-lg border border-stone-200 dark:border-zinc-800 shadow-md transition-colors">
         <button
           onClick={handleZoomIn}
-          className="w-7 h-7 flex items-center justify-center rounded text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          className="w-7 h-7 flex items-center justify-center rounded text-stone-700 dark:text-zinc-300 hover:text-stone-900 dark:hover:text-zinc-100 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors"
           title="Aproximar (+)"
         >
           <ZoomIn className="w-4 h-4" />
         </button>
         <button
           onClick={handleZoomOut}
-          className="w-7 h-7 flex items-center justify-center rounded text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          className="w-7 h-7 flex items-center justify-center rounded text-stone-700 dark:text-zinc-300 hover:text-stone-900 dark:hover:text-zinc-100 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors"
           title="Afastar (-)"
         >
           <ZoomOut className="w-4 h-4" />
         </button>
         <button
           onClick={handleResetNorth}
-          className="w-7 h-7 flex items-center justify-center rounded text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          className="w-7 h-7 flex items-center justify-center rounded text-stone-700 dark:text-zinc-300 hover:text-stone-900 dark:hover:text-zinc-100 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors"
           title="Orientar para o Norte"
         >
           <Compass className="w-4 h-4" />
@@ -361,21 +361,21 @@ export function HotspotMap({
       </div>
 
       {/* Legenda Térmica */}
-      <div className="absolute bottom-5 left-4 z-10 bg-white/90 dark:bg-zinc-950/85 backdrop-blur-md px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-800/90 text-[11px] shadow-lg flex items-center space-x-3 select-none transition-colors">
-        <span className="font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider text-[10px]">
+      <div className="absolute bottom-5 left-4 z-10 bg-[#f8faf7]/95 dark:bg-zinc-950/85 backdrop-blur-md px-3 py-2 rounded-lg border border-stone-200 dark:border-zinc-800/90 text-[11px] shadow-md flex items-center space-x-3 select-none transition-colors">
+        <span className="font-semibold text-stone-700 dark:text-zinc-300 uppercase tracking-wider text-[10px]">
           Severidade:
         </span>
         <div className="flex items-center space-x-1">
           <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-xs" />
-          <span className="text-zinc-700 dark:text-zinc-300 font-medium">Crítico (&ge;75)</span>
+          <span className="text-stone-700 dark:text-zinc-300 font-medium">Crítico (&ge;75)</span>
         </div>
         <div className="flex items-center space-x-1">
           <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-xs" />
-          <span className="text-zinc-700 dark:text-zinc-300 font-medium">Médio (40-74)</span>
+          <span className="text-stone-700 dark:text-zinc-300 font-medium">Médio (40-74)</span>
         </div>
         <div className="flex items-center space-x-1">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs" />
-          <span className="text-zinc-700 dark:text-zinc-300 font-medium">Baixo (&lt;40)</span>
+          <span className="text-stone-700 dark:text-zinc-300 font-medium">Baixo (&lt;40)</span>
         </div>
       </div>
     </div>

@@ -37,7 +37,6 @@ export function OperationalCharts({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  // 1. Dados de Deduplicação Espacial (O Argumento de Vendas B2G)
   const deduplicationData = [
     {
       categoria: 'Demandas Totais',
@@ -46,7 +45,6 @@ export function OperationalCharts({
     },
   ];
 
-  // 2. Dados de Composição por Escala e Risco
   const scaleDistribution = [
     { name: 'Crítico / Grande (Caçamba)', value: Math.max(criticalCount, 1), color: '#ef4444' },
     { name: 'Médio (Porta-malas / Móveis)', value: Math.max(mediumCount, 1), color: '#f59e0b' },
@@ -60,28 +58,27 @@ export function OperationalCharts({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-      {/* Gráfico 1: O Impacto da Deduplicação Espacial (2 colunas no desktop) */}
-      <div className="lg:col-span-2 bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/80 rounded-xl p-4 flex flex-col justify-between shadow-xs transition-colors">
+      {/* Gráfico 1: O Impacto da Deduplicação Espacial */}
+      <div className="lg:col-span-2 bg-[#fdfdfc] dark:bg-zinc-900/60 border border-stone-200/90 dark:border-zinc-800/80 rounded-xl p-4 flex flex-col justify-between shadow-2xs transition-colors">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-2">
-            <div className="w-7 h-7 rounded-md bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+            <div className="w-7 h-7 rounded-md bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-700 dark:text-emerald-400">
               <BarChart3 className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider flex items-center gap-1.5">
+              <h3 className="text-xs font-semibold text-stone-900 dark:text-zinc-100 uppercase tracking-wider flex items-center gap-1.5">
                 Inteligência de Agrupamento Espacial
-                <span className="text-[10px] normal-case font-mono font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex items-center gap-1">
+                <span className="text-[10px] normal-case font-mono font-medium text-emerald-800 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex items-center gap-1">
                   <TrendingDown className="w-3 h-3" /> -{noiseReduction}% Deslocamentos Desnecessários
                 </span>
               </h3>
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+              <p className="text-[11px] text-stone-500 dark:text-zinc-400 mt-0.5">
                 O motor PostGIS agrupa automaticamente denúncias repetidas num raio de 25 metros.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Gráfico de Barras de Deduplicação */}
         <div className="h-44 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
@@ -89,17 +86,17 @@ export function OperationalCharts({
               layout="vertical"
               margin={{ top: 10, right: 30, left: 10, bottom: 5 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#27272a' : '#f1f5f9'} horizontal={false} />
-              <XAxis type="number" stroke={isDark ? '#71717a' : '#94a3b8'} fontSize={11} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#27272a' : '#e6e9e4'} horizontal={false} />
+              <XAxis type="number" stroke={isDark ? '#71717a' : '#78716c'} fontSize={11} tickLine={false} />
               <YAxis type="category" dataKey="categoria" hide />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: isDark ? '#18181b' : '#ffffff',
-                  borderColor: isDark ? '#3f3f46' : '#e2e8f0',
+                  backgroundColor: isDark ? '#18181b' : '#f8faf7',
+                  borderColor: isDark ? '#3f3f46' : '#d6dad3',
                   borderRadius: '8px',
                   fontSize: '12px',
-                  color: isDark ? '#fafafa' : '#09090b',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  color: isDark ? '#fafafa' : '#1c1e21',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.08)',
                 }}
                 cursor={{ fill: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)' }}
               />
@@ -123,23 +120,23 @@ export function OperationalCharts({
           </ResponsiveContainer>
         </div>
 
-        <div className="mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-800/60 flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400 font-mono">
+        <div className="mt-2 pt-2 border-t border-stone-200/80 dark:border-zinc-800/60 flex items-center justify-between text-[11px] text-stone-500 dark:text-zinc-400 font-mono">
           <span>Sem EcoCidadão: {totalCitizenReports} viagens estimadas</span>
-          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Com EcoCidadão: {totalActiveClusters} rotas consolidadas</span>
+          <span className="text-emerald-700 dark:text-emerald-400 font-semibold">Com EcoCidadão: {totalActiveClusters} rotas consolidadas</span>
         </div>
       </div>
 
-      {/* Gráfico 2: Distribuição por Escala e Resolução (1 coluna) */}
-      <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/80 rounded-xl p-4 flex flex-col justify-between shadow-xs transition-colors">
+      {/* Gráfico 2: Distribuição por Escala e Resolução */}
+      <div className="bg-[#fdfdfc] dark:bg-zinc-900/60 border border-stone-200/90 dark:border-zinc-800/80 rounded-xl p-4 flex flex-col justify-between shadow-2xs transition-colors">
         <div className="flex items-center space-x-2 mb-2">
-          <div className="w-7 h-7 rounded-md bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
+          <div className="w-7 h-7 rounded-md bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-700 dark:text-blue-400">
             <PieIcon className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">
+            <h3 className="text-xs font-semibold text-stone-900 dark:text-zinc-100 uppercase tracking-wider">
               Composição da Fila Operacional
             </h3>
-            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+            <p className="text-[11px] text-stone-500 dark:text-zinc-400 mt-0.5">
               Classificação por severidade e porte do descarte
             </p>
           </div>
@@ -163,35 +160,35 @@ export function OperationalCharts({
               </Pie>
               <Tooltip
                 contentStyle={{
-                  backgroundColor: isDark ? '#18181b' : '#ffffff',
-                  borderColor: isDark ? '#3f3f46' : '#e2e8f0',
+                  backgroundColor: isDark ? '#18181b' : '#f8faf7',
+                  borderColor: isDark ? '#3f3f46' : '#d6dad3',
                   borderRadius: '8px',
                   fontSize: '11px',
-                  color: isDark ? '#fafafa' : '#09090b',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  color: isDark ? '#fafafa' : '#1c1e21',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.08)',
                 }}
               />
             </PieChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Mini Legenda Personalizada */}
-        <div className="grid grid-cols-2 gap-1 text-[10px] text-zinc-500 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-800/60 pt-2">
+        {/* Mini Legenda */}
+        <div className="grid grid-cols-2 gap-1 text-[10px] text-stone-500 dark:text-zinc-400 border-t border-stone-200/80 dark:border-zinc-800/60 pt-2">
           <div className="flex items-center space-x-1.5">
             <span className="w-2 h-2 rounded-full bg-red-500" />
-            <span className="truncate">Crítico ({criticalCount})</span>
+            <span className="truncate font-medium">Crítico ({criticalCount})</span>
           </div>
           <div className="flex items-center space-x-1.5">
             <span className="w-2 h-2 rounded-full bg-amber-500" />
-            <span className="truncate">Médio ({mediumCount})</span>
+            <span className="truncate font-medium">Médio ({mediumCount})</span>
           </div>
           <div className="flex items-center space-x-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="truncate">Pequeno ({smallCount})</span>
+            <span className="truncate font-medium">Pequeno ({smallCount})</span>
           </div>
           <div className="flex items-center space-x-1.5">
             <span className="w-2 h-2 rounded-full bg-violet-500" />
-            <span className="truncate">Limpos ({cleanedCount})</span>
+            <span className="truncate font-medium">Limpos ({cleanedCount})</span>
           </div>
         </div>
       </div>
