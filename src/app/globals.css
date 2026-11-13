@@ -21,3 +21,29 @@ body {
   background-color: #09090b;
   color: #fafafa;
 }
+
+/* MapLibre Dark Popup Overrides */
+.maplibregl-popup.ecocidadao-dark-popup .maplibregl-popup-content {
+  background-color: #18181b !important;
+  color: #fafafa !important;
+  border: 1px solid #3f3f46 !important;
+  border-radius: 10px !important;
+  padding: 10px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.6) !important;
+}
+
+.maplibregl-popup.ecocidadao-dark-popup .maplibregl-popup-tip {
+  border-top-color: #18181b !important;
+  border-bottom-color: #18181b !important;
+}
+
+.maplibregl-popup.ecocidadao-dark-popup .maplibregl-popup-close-button {
+  color: #a1a1aa !important;
+  font-size: 16px !important;
+  padding: 4px 8px !important;
+}
+
+.maplibregl-popup.ecocidadao-dark-popup .maplibregl-popup-close-button:hover {
+  color: #fafafa !important;
+  background: transparent !important;
+}
