@@ -96,10 +96,10 @@ function HomeContent() {
   const reportUrl = activeQrAnchor ? `/reportar?qr=${activeQrAnchor.code}` : '/reportar';
 
   return (
-    <div className="min-h-dvh w-full flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors pb-24 selection:bg-emerald-500/20 selection:text-emerald-700 dark:selection:text-emerald-300">
+    <div className="min-h-dvh w-full flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors pb-[max(6rem,calc(env(safe-area-inset-bottom)+5rem))] selection:bg-emerald-500/20 selection:text-emerald-700 dark:selection:text-emerald-300">
       
       {/* SEÇÃO HERO IMERSIVO (Estilo Stitch Design System) */}
-      <section className="relative w-full bg-gradient-to-br from-emerald-900 via-emerald-950 to-zinc-950 text-white px-4 sm:px-6 pt-6 pb-8 overflow-hidden rounded-b-[2.5rem] shadow-xl">
+      <section className="relative w-full bg-gradient-to-br from-emerald-900 via-emerald-950 to-zinc-950 text-white px-4 sm:px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-8 overflow-hidden rounded-b-[2.5rem] shadow-xl">
         {/* Luzes orgânicas de ambientação */}
         <div className="absolute -top-12 -right-12 w-64 h-64 bg-emerald-400/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute top-1/2 -left-20 w-72 h-72 bg-teal-500/10 rounded-full blur-[70px] pointer-events-none" />
@@ -321,7 +321,7 @@ function HomeContent() {
       </main>
 
       {/* FLOATING DOCK INFERIOR (Mobile Tab Bar do Stitch) */}
-      <div className="fixed bottom-4 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
+      <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
         <nav 
           aria-label="Navegação inferior"
           className="pointer-events-auto flex items-center justify-around w-full max-w-[320px] px-3 py-1.5 bg-zinc-950/85 dark:bg-zinc-900/90 backdrop-blur-xl rounded-full shadow-[0_12px_36px_rgba(0,0,0,0.3)] border border-white/15"

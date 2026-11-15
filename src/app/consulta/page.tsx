@@ -205,10 +205,10 @@ function ConsultaContent() {
   }, [filterTab, currentList]);
 
   return (
-    <div className="min-h-dvh w-full flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors pb-36">
+    <div className="min-h-dvh w-full flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors pb-[max(8rem,calc(env(safe-area-inset-bottom)+6rem))]">
       
       {/* 1. HEADER / APP BAR MINIMALISTA STICKY (APPLE HIG / LINEAR STYLE DO STITCH) */}
-      <header className="sticky top-0 z-40 flex items-center justify-between px-4 py-3 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-200/60 dark:border-zinc-800/60 transition-all duration-300">
+      <header className="sticky top-0 z-40 flex items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-200/60 dark:border-zinc-800/60 transition-all duration-300">
         {/* Botão Voltar */}
         <Link
           href="/"
@@ -489,7 +489,7 @@ function ConsultaContent() {
       </main>
 
       {/* 6. FLOATING DOCK INFERIOR COMPATÍVEL COM O HOME */}
-      <div className="fixed bottom-4 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
+      <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
         <nav 
           aria-label="Navegação inferior"
           className="pointer-events-auto flex items-center justify-around w-full max-w-[320px] px-3 py-1.5 bg-zinc-950/85 dark:bg-zinc-900/90 backdrop-blur-xl rounded-full shadow-[0_12px_36px_rgba(0,0,0,0.3)] border border-white/15"
