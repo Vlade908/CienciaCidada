@@ -22,6 +22,8 @@ html {
   min-height: 100%;
   width: 100%;
   overflow-y: auto;
+  overscroll-behavior-y: none;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -32,6 +34,30 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   transition: background-color 0.2s ease, color 0.2s ease;
+  overscroll-behavior-y: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+/* Permitir seleção intencional de texto em formulários, inputs e códigos de protocolo */
+input,
+textarea,
+select,
+[contenteditable="true"],
+.selectable-text {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+
+/* Safe areas para celulares com entalhe / Dynamic Island e barra inferior */
+.pwa-safe-top {
+  padding-top: max(1rem, env(safe-area-inset-top, 0px));
+}
+
+.pwa-safe-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
 }
 
 /* Scrollbar styling elegante e moderno (Apple / Vercel style) */
