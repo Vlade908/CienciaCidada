@@ -1,23 +1,20 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { AdminKpiStrip } from '@/components/admin/AdminKpiStrip';
-import { OperationalCharts } from '@/components/admin/OperationalCharts';
 import { ClusterDataTable, ClusterRecord } from '@/components/admin/ClusterDataTable';
 import { ResolveCleanModal } from '@/components/admin/ResolveCleanModal';
 import { ClusterDetailDrawer } from '@/components/admin/ClusterDetailDrawer';
 import { PhotoPreviewModal } from '@/components/admin/PhotoPreviewModal';
 import { 
-  Map as MapIcon, 
   Loader2, 
-  CheckCircle2, 
-  Download
+  CheckCircle2,
+  X
 } from 'lucide-react';
 
-// Dados de demonstração inicial para garantir que a tela nunca fique vazia
+// Dados de demonstração inicial resilientes (garantem que a tela funcione mesmo antes da conexão)
 const SEED_CLUSTERS: ClusterRecord[] = [
   {
     id: 'c1a2b3c4-d5e6-7890-abcd-111122223333',
@@ -87,10 +84,10 @@ export default function AdminDashboardPage() {
   // Estado para o Modal de Resolução de Limpeza ("Antes e Depois")
   const [resolvingCluster, setResolvingCluster] = useState<ClusterRecord | null>(null);
   
-  // Estado para a Gaveta de Detalhes do Agrupamento (Feedback 6)
+  // Estado para a Gaveta de Detalhes do Agrupamento (Dossiê)
   const [selectedDetailCluster, setSelectedDetailCluster] = useState<ClusterRecord | null>(null);
 
-  // Estado para o Lightbox de Foto (Feedback 5)
+  // Estado para o Lightbox de Foto em Alta Resolução
   const [previewPhoto, setPreviewPhoto] = useState<{ url: string; title: string } | null>(null);
 
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
@@ -101,7 +98,6 @@ export default function AdminDashboardPage() {
     setIsRefreshing(true);
 
     try {
-      // 1. Busca clusters reais ordenados por prioridade
       const { data: dbClusters, error: clustersError } = await supabase
         .from('incident_clusters')
         .select('*')
@@ -129,10 +125,9 @@ export default function AdminDashboardPage() {
   const cleanedClusters = clusters.filter((c) => c.status === 'CLEANED');
 
   const totalActiveClusters = activeClusters.length;
+  const inRouteCount = activeClusters.filter((c) => c.status === 'IN_ROUTE').length;
   const totalCitizenReports = clusters.reduce((acc, c) => acc + (c.confirmations_count || 1), 0);
   const criticalCount = activeClusters.filter((c) => c.priority_score >= 75 || c.is_eco_critical).length;
-  const mediumCount = activeClusters.filter((c) => c.dominant_scale === 'MEDIUM' && c.priority_score < 75).length;
-  const smallCount = activeClusters.filter((c) => c.dominant_scale === 'SMALL' && c.priority_score < 75).length;
   const cleanedCount = cleanedClusters.length;
 
   const handleExportCSV = () => {
@@ -143,25 +138,25 @@ export default function AdminDashboardPage() {
       c.dominant_scale,
       c.confirmations_count,
       Math.round(Math.min(c.priority_score, 100)) + '%',
-      `"${c.address_reference || ''}"`,
+      `"${(c.address_reference || '').replace(/"/g, '""')}"`,
       `"${(c.waste_tags || []).join(';')}"`,
       c.first_reported_at,
     ]);
 
-    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `ecocidadao-ordens-${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `ecocidadao_ordens_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full w-full overflow-hidden bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors">
-      {/* 1. Header Corporativo com Navegação Integrada */}
+    <div className="flex-1 flex flex-col h-full w-full overflow-hidden bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 transition-colors">
+      
+      {/* 1. Barra de Comando B2G Stitch (56px) */}
       <AdminHeader
         municipalityName="São Paulo - SP (Piloto Universitário)"
         onRefresh={() => loadDashboardData(true)}
@@ -169,108 +164,90 @@ export default function AdminDashboardPage() {
         totalClusters={totalActiveClusters}
       />
 
-      {/* 2. Faixa Superior de KPIs Executivos com Dados Dinâmicos */}
+      {/* 2. Faixa Silenciosa de Métricas (Quiet Metrics Strip) */}
       <AdminKpiStrip
         totalActiveClusters={totalActiveClusters}
         totalCitizenReports={totalCitizenReports}
         criticalClustersCount={criticalCount}
         resolvedThisMonthCount={cleanedCount}
+        inRouteCount={inRouteCount}
         averageResolutionHours={14.8}
       />
 
-      {/* 3. Área de Trabalho com Rolagem Limpa */}
-      <div className="flex-1 overflow-y-auto px-4 py-5 md:px-6">
-        <div className="max-w-7xl mx-auto space-y-5">
-          {/* Alerta de Feedback de Ação Concluída */}
-          {feedbackNotice && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between animate-in fade-in">
-              <div className="flex items-center space-x-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>{feedbackNotice}</span>
-              </div>
-              <button
-                onClick={() => setFeedbackNotice(null)}
-                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-xs font-mono"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-
-          {/* Gráficos de Inteligência Operacional */}
-          <OperationalCharts
-            totalActiveClusters={totalActiveClusters}
-            totalCitizenReports={totalCitizenReports}
-            criticalCount={criticalCount}
-            mediumCount={mediumCount}
-            smallCount={smallCount}
-            cleanedCount={cleanedCount}
-          />
-
-          {/* Cabeçalho da Tabela de Triagem */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-            <div>
-              <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                <span>Fila de Triagem & Ordens de Despacho</span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
-                  {activeClusters.length} focos prioritários
-                </span>
-              </h2>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                Ordenação automática por gravidade (fórmula PostGIS: escala + volume + risco hídrico + validação popular).
-              </p>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              {/* Botão Exportar CSV */}
-              <button
-                onClick={handleExportCSV}
-                className="px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium border border-zinc-200 dark:border-zinc-800 transition-colors flex items-center space-x-1.5 shadow-2xs"
-                title="Exportar dados das ordens para relatório municipal"
-              >
-                <Download className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
-                <span className="hidden sm:inline">Exportar CSV</span>
-              </button>
-
-              {/* Botão Ver no Mapa Global */}
-              <Link
-                href="/admin/map"
-                className="px-3.5 py-1.5 rounded-lg bg-blue-600/15 hover:bg-blue-600/25 dark:bg-blue-600/20 dark:hover:bg-blue-600/30 text-blue-700 dark:text-blue-300 text-xs font-semibold border border-blue-500/30 dark:border-blue-500/40 transition-colors flex items-center space-x-1.5 shadow-2xs"
-              >
-                <MapIcon className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                <span>Abrir Mapa Geoespacial</span>
-              </Link>
-            </div>
+      {/* Alerta de Feedback Operacional Temporário */}
+      {feedbackNotice && (
+        <div className="mx-6 mt-3 p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between animate-in fade-in shrink-0">
+          <div className="flex items-center space-x-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>{feedbackNotice}</span>
           </div>
+          <button
+            onClick={() => setFeedbackNotice(null)}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 text-xs font-mono ml-4"
+            aria-label="Dispensar aviso"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
-          {/* Tabela de Dados Completa com Drill-down e Ver Foto */}
+      {/* 3. Área de Trabalho Principal com Split-View (Mesa de Triagem + Dossiê Acoplado) */}
+      <main className="flex-1 flex overflow-hidden min-h-0">
+        
+        {/* Mesa de Triagem de Alta Densidade */}
+        <section 
+          aria-label="Mesa de triagem de ordens de serviço" 
+          className="flex-1 flex flex-col min-w-0 h-full overflow-hidden"
+        >
           {isLoading ? (
-            <div className="h-64 flex flex-col items-center justify-center space-y-2 bg-zinc-900/40 border border-zinc-800 rounded-xl text-zinc-400">
-              <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
-              <span className="text-xs font-mono">Consultando ordens de serviço no Supabase...</span>
+            <div className="flex-1 flex flex-col items-center justify-center space-y-2 bg-white dark:bg-zinc-900 text-slate-400">
+              <Loader2 className="w-6 h-6 animate-spin text-emerald-600 dark:text-emerald-400" />
+              <span className="text-xs font-mono">Sincronizando com PostGIS...</span>
             </div>
           ) : (
             <ClusterDataTable
               clusters={clusters}
+              selectedClusterId={selectedDetailCluster?.id}
               onResolveClean={(cluster) => setResolvingCluster(cluster)}
               onSelectCluster={(cluster) => setSelectedDetailCluster(cluster)}
               onOpenPhotoPreview={(url, title) => setPreviewPhoto({ url, title })}
               onRefreshData={() => loadDashboardData(true)}
+              onExportCSV={handleExportCSV}
             />
           )}
+        </section>
+
+        {/* Dossiê Lateral Acoplado (Aparece em telas desktop largas ou como overlay) */}
+        {selectedDetailCluster && (
+          <div className="hidden xl:flex h-full">
+            <ClusterDetailDrawer
+              cluster={selectedDetailCluster}
+              isOpen={Boolean(selectedDetailCluster)}
+              onClose={() => setSelectedDetailCluster(null)}
+              onResolveClean={(cluster) => setResolvingCluster(cluster)}
+              onOpenPhotoPreview={(url, title) => setPreviewPhoto({ url, title })}
+              mode="docked"
+            />
+          </div>
+        )}
+
+      </main>
+
+      {/* Dossiê Modal Overlay para telas menores que XL */}
+      {selectedDetailCluster && (
+        <div className="xl:hidden">
+          <ClusterDetailDrawer
+            cluster={selectedDetailCluster}
+            isOpen={Boolean(selectedDetailCluster)}
+            onClose={() => setSelectedDetailCluster(null)}
+            onResolveClean={(cluster) => setResolvingCluster(cluster)}
+            onOpenPhotoPreview={(url, title) => setPreviewPhoto({ url, title })}
+            mode="modal"
+          />
         </div>
-      </div>
+      )}
 
-      {/* 4. Gaveta de Detalhes do Cluster com Galeria de Cidadãos (Feedback 6) */}
-      <ClusterDetailDrawer
-        cluster={selectedDetailCluster}
-        isOpen={Boolean(selectedDetailCluster)}
-        onClose={() => setSelectedDetailCluster(null)}
-        onResolveClean={(cluster) => setResolvingCluster(cluster)}
-        onOpenPhotoPreview={(url, title) => setPreviewPhoto({ url, title })}
-      />
-
-      {/* 5. Lightbox Modal de Foto em Alta Resolução (Feedback 5) */}
+      {/* Lightbox Modal de Foto em Alta Resolução */}
       <PhotoPreviewModal
         isOpen={Boolean(previewPhoto)}
         photoUrl={previewPhoto?.url || null}
@@ -278,7 +255,7 @@ export default function AdminDashboardPage() {
         onClose={() => setPreviewPhoto(null)}
       />
 
-      {/* 6. Modal de Resolução de Limpeza ("Antes e Depois") */}
+      {/* Modal de Baixa com Foto Comprovatória Antes / Depois */}
       <ResolveCleanModal
         cluster={resolvingCluster}
         isOpen={Boolean(resolvingCluster)}
@@ -288,6 +265,7 @@ export default function AdminDashboardPage() {
           loadDashboardData(true);
         }}
       />
+
     </div>
   );
 }

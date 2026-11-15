@@ -25,9 +25,10 @@ interface AdminHeaderProps {
 }
 
 export function AdminHeader({
-  municipalityName = 'São Paulo - SP (Piloto Universitário)',
+  municipalityName = 'PMSP / DSP-SLU • Zeladoria Urbana',
   onRefresh,
   isRefreshing = false,
+  totalClusters,
 }: AdminHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -52,120 +53,114 @@ export function AdminHeader({
   };
 
   return (
-    <header className="h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md px-4 flex items-center justify-between shrink-0 z-30 select-none transition-colors">
-      {/* Lado Esquerdo: Identidade do Sistema & Navegação entre Painel e Mapa */}
-      <div className="flex items-center space-x-4">
-        {/* Logo & Marca B2G */}
-        <Link href="/admin" className="flex items-center space-x-2 group">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-700 dark:text-emerald-400 group-hover:scale-105 transition-transform">
-            <Layers className="w-4 h-4" />
+    <header className="h-14 bg-white dark:bg-zinc-950 border-b border-slate-200 dark:border-zinc-800 px-4 md:px-6 flex items-center justify-between shrink-0 z-30 select-none transition-colors">
+      {/* Lado Esquerdo: Identidade do Sistema & Navegação Institucional */}
+      <div className="flex items-center gap-4 md:gap-6">
+        <Link href="/admin" className="flex items-center gap-2.5 group">
+          <div className="w-7 h-7 rounded bg-emerald-600 flex items-center justify-center text-white font-bold text-xs shadow-xs group-hover:scale-105 transition-transform">
+            EC
           </div>
-          <div className="flex flex-col">
-            <div className="flex items-center space-x-2">
-              <span className="font-semibold text-sm tracking-tight text-zinc-900 dark:text-zinc-100">
-                EcoCidadão
-              </span>
-              <span className="px-1.5 py-0.5 text-[9px] font-mono tracking-wider font-semibold rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700/50">
-                B2G COMMAND
-              </span>
-            </div>
-            <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
-              Operações de Limpeza Urbana
+          <div className="flex items-baseline gap-2">
+            <span className="font-bold text-[15px] tracking-tight text-slate-900 dark:text-zinc-100">
+              EcoCidadão
+            </span>
+            <span className="hidden sm:inline text-[11px] text-slate-400 dark:text-zinc-500 font-medium tracking-wide">
+              {municipalityName}
             </span>
           </div>
         </Link>
 
-        <div className="h-5 w-px bg-zinc-200 dark:bg-zinc-800 hidden md:block" />
+        <div className="h-4 w-px bg-slate-200 dark:bg-zinc-800 hidden md:block" />
 
-        {/* Abas Principais: Painel Operacional vs Mapa */}
-        <nav className="flex items-center space-x-1 bg-zinc-100 dark:bg-zinc-900/90 p-1 rounded-lg border border-zinc-200 dark:border-zinc-800">
+        {/* Abas Principais: Ordens & Indicadores vs. Mapa Geoespacial */}
+        <nav className="flex items-center gap-1">
           <Link
             href="/admin"
-            className={`flex items-center space-x-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all ${
+            className={`px-3 py-1.5 text-xs rounded transition-colors flex items-center gap-1.5 ${
               isDashboardActive
-                ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-xs border border-zinc-200 dark:border-zinc-700/60 font-semibold'
-                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50'
+                ? 'font-semibold bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100'
+                : 'font-medium text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-900'
             }`}
           >
             <LayoutDashboard className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>Ordens & Indicadores</span>
+            <span>Ordens &amp; Indicadores</span>
           </Link>
 
           <Link
             href="/admin/map"
-            className={`flex items-center space-x-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all ${
+            className={`px-3 py-1.5 text-xs rounded transition-colors flex items-center gap-1.5 ${
               isMapActive
-                ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-xs border border-zinc-200 dark:border-zinc-700/60 font-semibold'
-                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50'
+                ? 'font-semibold bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100'
+                : 'font-medium text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-900'
             }`}
           >
             <MapIcon className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
             <span>Mapa Geoespacial</span>
+            {typeof totalClusters === 'number' && (
+              <span className="text-[10px] bg-slate-200/80 dark:bg-zinc-800 px-1.5 py-0.5 rounded-full font-mono text-slate-700 dark:text-zinc-300">
+                {totalClusters} focos
+              </span>
+            )}
           </Link>
         </nav>
-
-        {/* Identificador do Município/Tenant */}
-        <div className="hidden lg:flex items-center space-x-1.5 text-xs text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-900/60 px-2.5 py-1 rounded-md border border-zinc-200 dark:border-zinc-800/80">
-          <Building2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-          <span className="font-medium text-zinc-800 dark:text-zinc-300">{municipalityName}</span>
-        </div>
       </div>
 
-      {/* Lado Direito: Alternador Claro/Escuro, Status de Banco, Atualização e App Cidadão */}
-      <div className="flex items-center space-x-2.5">
-        {/* Botão Alternador de Modo Claro / Escuro */}
-        <button
-          onClick={toggleTheme}
-          className="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 transition-colors"
-          title={theme === 'dark' ? 'Alternar para Modo Claro' : 'Alternar para Modo Escuro'}
-          aria-label="Alternar Tema"
-        >
-          {theme === 'dark' ? (
-            <Sun className="w-4 h-4 text-amber-400" />
-          ) : (
-            <Moon className="w-4 h-4 text-zinc-700" />
-          )}
-        </button>
-
-        {/* Status de Conexão com Supabase PostGIS */}
-        <div className="hidden sm:flex items-center space-x-2 px-2.5 py-1 bg-zinc-100 dark:bg-zinc-900/60 rounded-md border border-zinc-200 dark:border-zinc-800/80 text-xs text-zinc-600 dark:text-zinc-400">
+      {/* Lado Direito: Telemetria Live, Tema, Atualização e Ações */}
+      <div className="flex items-center gap-3 md:gap-4 text-xs">
+        {/* Status de Sincronização PostGIS Live */}
+        <div className="hidden lg:flex items-center gap-1.5 text-slate-500 dark:text-zinc-400 font-mono text-[11px]">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
-          <Database className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500" />
-          <span className="font-mono text-[11px] text-zinc-800 dark:text-zinc-300">PostGIS Live</span>
+          <span>PostGIS Live</span>
         </div>
 
-        {/* Botão de Atualização Live */}
+        {/* Botão Sincronizar */}
         {onRefresh && (
           <button
             onClick={onRefresh}
             disabled={isRefreshing}
-            className="flex items-center space-x-1.5 px-2.5 py-1 text-xs rounded-md bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/60 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded bg-slate-100 dark:bg-zinc-900 hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-800 transition-colors disabled:opacity-50"
             title="Sincronizar com banco de dados"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400 ${isRefreshing ? 'animate-spin text-emerald-600 dark:text-emerald-400' : ''}`} />
-            <span className="hidden md:inline font-medium">Sincronizar</span>
+            <RefreshCw className={`w-3.5 h-3.5 text-slate-500 dark:text-zinc-400 ${isRefreshing ? 'animate-spin text-emerald-600 dark:text-emerald-400' : ''}`} />
+            <span className="hidden sm:inline font-medium">Sincronizar</span>
           </button>
         )}
 
-        {/* Atalho para o App Mobile do Cidadão */}
+        {/* Alternador de Tema Claro / Escuro */}
+        <button
+          onClick={toggleTheme}
+          className="flex items-center justify-center w-7 h-7 rounded bg-slate-100 dark:bg-zinc-900 hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-zinc-800 transition-colors"
+          title={theme === 'dark' ? 'Alternar para Modo Claro' : 'Alternar para Modo Escuro'}
+          aria-label="Alternar Tema"
+        >
+          {theme === 'dark' ? (
+            <Sun className="w-3.5 h-3.5 text-amber-400" />
+          ) : (
+            <Moon className="w-3.5 h-3.5 text-slate-600" />
+          )}
+        </button>
+
+        <div className="h-4 w-px bg-slate-200 dark:bg-zinc-800 hidden sm:block" />
+
+        {/* Atalho App Cidadão */}
         <Link
           href="/"
           target="_blank"
-          className="flex items-center space-x-1.5 px-3 py-1 text-xs rounded-md bg-emerald-600/15 hover:bg-emerald-600/25 dark:bg-emerald-600/20 dark:hover:bg-emerald-600/30 text-emerald-800 dark:text-emerald-300 border border-emerald-600/25 dark:border-emerald-500/40 transition-colors font-semibold"
-          title="Abrir aplicativo do cidadão para registrar denúncia de teste"
+          className="hidden md:flex items-center gap-1.5 px-2.5 py-1 text-xs rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/25 transition-colors font-medium"
+          title="Abrir aplicativo mobile do cidadão"
         >
           <Smartphone className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">App Cidadão</span>
+          <span>App Cidadão</span>
         </Link>
 
-        {/* Botão de Encerramento de Sessão (Logout) */}
+        {/* Logout */}
         <button
           onClick={handleLogout}
           disabled={isLoggingOut}
-          className="flex items-center space-x-1.5 px-2.5 py-1 text-xs rounded-md bg-zinc-100 hover:bg-rose-500/10 hover:text-rose-600 dark:bg-zinc-900 dark:hover:bg-rose-500/20 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800 transition-colors font-medium disabled:opacity-50"
+          className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded text-slate-600 dark:text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors font-medium disabled:opacity-50"
           title="Encerrar sessão administrativa"
         >
           <LogOut className="w-3.5 h-3.5" />
