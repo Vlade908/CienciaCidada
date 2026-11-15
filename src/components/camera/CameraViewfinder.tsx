@@ -22,6 +22,8 @@ import {
   type EdgeProcessedPhoto,
 } from "@/hooks/useEdgeImageProcessor";
 import { useCameraZoom } from "@/hooks/useCameraZoom";
+import { useCameraFocus } from "@/hooks/useCameraFocus";
+import { FocusReticle } from "@/components/camera/FocusReticle";
 
 export interface CameraViewfinderProps {
   gpsState: GpsState;
@@ -73,6 +75,15 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
   });
 
   const [retryCameraCounter, setRetryCameraCounter] = useState(0);
+
+  const containerRef = useRef<HTMLElement | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number; time: number; target: EventTarget | null } | null>(null);
+  const isDraggingRef = useRef(false);
+
+  const { focusPoint, triggerFocus, dismissFocus } = useCameraFocus({
+    videoTrack: activeVideoTrack,
+    zoom,
+  });
 
   const retryCamera = useCallback(() => {
     setRetryCameraCounter((prev) => prev + 1);
@@ -182,13 +193,16 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
   }, [torchActive]);
 
   const toggleFlipCamera = useCallback(() => {
+    dismissFocus();
     setFacingMode((prev) => (prev === "environment" ? "user" : "environment"));
-  }, []);
+  }, [dismissFocus]);
 
   const handleShutterPress = useCallback(async (e?: React.MouseEvent) => {
     e?.preventDefault();
     e?.stopPropagation();
     if (isProcessing) return;
+
+    dismissFocus();
 
     if (typeof navigator !== "undefined" && "vibrate" in navigator) {
       navigator.vibrate(35);
@@ -245,7 +259,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
       "image/jpeg",
       0.90
     );
-  }, [cameraReady, isProcessing, onPhotoProcessed, processCaptureBlob, isHardwareZoom, zoom]);
+  }, [cameraReady, isProcessing, onPhotoProcessed, processCaptureBlob, isHardwareZoom, zoom, dismissFocus]);
 
   const handleNativeFileChange = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -266,16 +280,98 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
     [onPhotoProcessed, processCaptureBlob]
   );
 
+  // Manipuladores compostos para convivência pacífica entre pinça (zoom) e toque único (foco)
+  const handleTouchStartComposite = useCallback(
+    (e: React.TouchEvent) => {
+      if (e.touches.length === 2) {
+        dismissFocus();
+        handleTouchStart(e);
+        return;
+      }
+
+      if (e.touches.length === 1) {
+        isDraggingRef.current = false;
+        touchStartRef.current = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+          time: Date.now(),
+          target: e.target,
+        };
+      }
+    },
+    [dismissFocus, handleTouchStart]
+  );
+
+  const handleTouchMoveComposite = useCallback(
+    (e: React.TouchEvent) => {
+      if (e.touches.length === 2) {
+        dismissFocus();
+        handleTouchMove(e);
+        return;
+      }
+
+      if (e.touches.length === 1 && touchStartRef.current) {
+        const dx = e.touches[0].clientX - touchStartRef.current.x;
+        const dy = e.touches[0].clientY - touchStartRef.current.y;
+        if (Math.hypot(dx, dy) > 10) {
+          isDraggingRef.current = true;
+        }
+      }
+    },
+    [dismissFocus, handleTouchMove]
+  );
+
+  const handleTouchEndComposite = useCallback(
+    (e: React.TouchEvent) => {
+      if (e.touches.length === 0 && touchStartRef.current) {
+        const elapsed = Date.now() - touchStartRef.current.time;
+        const target = touchStartRef.current.target as HTMLElement | null;
+        // Não aciona foco se o toque foi sobre botões da Thumb Zone, header ou controles interativos
+        const isInteractive = target?.closest("button, a, input, header, footer, [data-no-focus]");
+
+        if (!isPinching && !isDraggingRef.current && elapsed < 400 && !isInteractive) {
+          if (containerRef.current) {
+            triggerFocus(
+              touchStartRef.current.x,
+              touchStartRef.current.y,
+              containerRef.current.getBoundingClientRect()
+            );
+          }
+        }
+        touchStartRef.current = null;
+        isDraggingRef.current = false;
+      }
+
+      handleTouchEnd(e);
+    },
+    [isPinching, triggerFocus, handleTouchEnd]
+  );
+
+  const handleContainerClick = useCallback(
+    (e: React.MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("button, a, input, header, footer, [data-no-focus]")) {
+        return;
+      }
+      if (containerRef.current) {
+        triggerFocus(e.clientX, e.clientY, containerRef.current.getBoundingClientRect());
+      }
+    },
+    [triggerFocus]
+  );
+
   const isGpsLocked = gpsState === "LOCKED" || gpsState === "QR_ANCHORED" || Boolean(qrAnchor);
 
   return (
     <section
+      ref={containerRef}
       aria-label="Visor da câmera para registro de descarte irregular"
       className="relative flex h-dvh w-full flex-col justify-between overflow-hidden bg-black text-white select-none touch-none"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={handleTouchEnd}
+      onTouchStart={handleTouchStartComposite}
+      onTouchMove={handleTouchMoveComposite}
+      onTouchEnd={handleTouchEndComposite}
+      onTouchCancel={handleTouchEndComposite}
+      onClick={handleContainerClick}
     >
       <input
         ref={fileInputRef}
@@ -329,8 +425,11 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
         <div />
       </div>
 
+      {/* RETÍCULO VISUAL DE FOCO E MEDIÇÃO DE LUZ NATIVO */}
+      <FocusReticle focusPoint={focusPoint} />
+
       {/* TOP HUD: NAVEGAÇÃO, TELEMETRIA GPS E FLASH STITCH */}
-      <header className="relative z-30 pt-[max(1rem,env(safe-area-inset-top))] px-4 flex flex-col gap-2">
+      <header data-no-focus="true" className="relative z-30 pt-[max(1rem,env(safe-area-inset-top))] px-4 flex flex-col gap-2">
         <div className="flex items-center justify-between w-full max-w-sm mx-auto">
           {/* Botão Fechar / Voltar à Home */}
           <Link
@@ -420,7 +519,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
       </div>
 
       {/* BOTTOM HUD: CONTROLES DE ZOOM NA THUMB ZONE, GALERIA, SHUTTER IPHONE E FLIP STITCH */}
-      <footer className="relative z-30 pb-[max(1.5rem,env(safe-area-inset-bottom))] px-4 flex flex-col items-center gap-3 mb-2">
+      <footer data-no-focus="true" className="relative z-30 pb-[max(1.5rem,env(safe-area-inset-bottom))] px-4 flex flex-col items-center gap-3 mb-2">
         
         {/* PÍLULAS DE ZOOM TÁTIL NA THUMB ZONE (LEI DE FITTS / NEVER GESTURE-ONLY) */}
         <div 
