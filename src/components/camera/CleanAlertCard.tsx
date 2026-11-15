@@ -19,6 +19,7 @@ import {
   AlertTriangle,
   X,
   FileText,
+  Smartphone,
 } from "lucide-react";
 
 export interface CleanAlertCardProps {
@@ -312,6 +313,12 @@ export const CleanAlertCard: React.FC<CleanAlertCardProps> = ({
           <div className="flex items-center justify-center gap-1.5 mt-3 text-xs text-zinc-400">
             <ShieldCheck className="size-3.5 text-emerald-400" />
             <span className="tracking-tight">Zero cadastro · Seus dados não foram coletados</span>
+          </div>
+
+          {/* Dica de Instalação PWA na Tela Inicial */}
+          <div className="mt-2.5 px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800/80 flex items-center justify-center gap-2 text-[11px] text-zinc-300 shadow-xs">
+            <Smartphone className="size-3.5 text-emerald-400 shrink-0" />
+            <span>💡 <strong>Dica:</strong> Adicione o EcoCidadão à sua tela inicial para relatar novos focos em 1 toque</span>
           </div>
         </div>
       </main>
