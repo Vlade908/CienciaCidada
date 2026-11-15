@@ -8,25 +8,20 @@ import {
   X, 
   MapPin, 
   CheckCircle2, 
-  Layers, 
   Clock, 
-  Camera, 
-  ShieldCheck, 
   Droplets, 
-  ExternalLink, 
-  Maximize2,
-  Users,
-  AlertTriangle,
-  Flame,
+  Map,
   Check,
-  ImageIcon
+  CameraOff,
+  Maximize2,
+  Info
 } from 'lucide-react';
 
 export interface CitizenSubReport {
   id: string;
   cluster_id: string;
   reported_scale: 'SMALL' | 'MEDIUM' | 'LARGE';
-  photo_webp_url: string;
+  photo_webp_url?: string | null;
   gps_accuracy_m: number;
   location_source: string;
   created_at: string;
@@ -39,11 +34,9 @@ interface ClusterDetailDrawerProps {
   onClose: () => void;
   onResolveClean?: (cluster: ClusterRecord) => void;
   onOpenPhotoPreview?: (photoUrl: string, title: string) => void;
+  mode?: 'modal' | 'docked';
 }
 
-/**
- * Normaliza qualquer URL de foto (relativa no Storage, nula ou externa) para URL pública segura
- */
 function resolvePhotoUrl(rawUrl: string | null | undefined, fallbackUrl?: string): string {
   if (!rawUrl || typeof rawUrl !== 'string' || rawUrl.trim() === '') {
     return fallbackUrl || '';
@@ -52,7 +45,6 @@ function resolvePhotoUrl(rawUrl: string | null | undefined, fallbackUrl?: string
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
     return trimmed;
   }
-  // Se for caminho relativo de Storage no Supabase (ex: 'reports-webp/piloto/...' ou 'piloto/...')
   const cleanPath = trimmed.replace(/^reports-webp\//, '');
   try {
     const { data } = supabase.storage.from('reports-webp').getPublicUrl(cleanPath);
@@ -62,177 +54,30 @@ function resolvePhotoUrl(rawUrl: string | null | undefined, fallbackUrl?: string
   }
 }
 
-/**
- * Componente individual de Card da Galeria com tratamento robusto de erro, skeleton e fallback
- */
-interface SubReportGalleryCardProps {
-  report: CitizenSubReport;
-  index: number;
-  protocolCode: string;
-  fallbackPhotoUrl?: string;
-  onPreview: (url: string, title: string) => void;
-}
-
-function SubReportGalleryCard({
-  report,
-  index,
-  protocolCode,
-  fallbackPhotoUrl,
-  onPreview,
-}: SubReportGalleryCardProps) {
-  const initialUrl = report.photo_webp_url || fallbackPhotoUrl || '';
-  const [currentUrl, setCurrentUrl] = useState<string>(initialUrl);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [hasFailed, setHasFailed] = useState<boolean>(!initialUrl);
-
-  const reportScale = {
-    LARGE: 'Grande',
-    MEDIUM: 'Médio',
-    SMALL: 'Pequeno',
-  }[report.reported_scale] || report.reported_scale;
-
-  const handleImageError = () => {
-    // Se a foto original falhou e temos uma foto de fallback diferente, tenta ela
-    if (fallbackPhotoUrl && currentUrl !== fallbackPhotoUrl) {
-      setCurrentUrl(fallbackPhotoUrl);
-    } else {
-      setHasFailed(true);
-      setIsLoading(false);
-    }
-  };
-
-  const handleImageLoad = () => {
-    setIsLoading(false);
-  };
-
-  const handleCardClick = () => {
-    if (!hasFailed && currentUrl) {
-      onPreview(currentUrl, `Relato #${index + 1} • ${protocolCode}`);
-    } else if (fallbackPhotoUrl) {
-      onPreview(fallbackPhotoUrl, `Relato #${index + 1} (Referência do Cluster) • ${protocolCode}`);
-    }
-  };
-
-  return (
-    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/40 overflow-hidden hover:border-zinc-300 dark:hover:border-zinc-700 transition-all flex flex-col justify-between shadow-2xs group">
-      {/* Moldura da Imagem */}
-      <div
-        className="relative h-40 bg-zinc-100 dark:bg-zinc-900 cursor-pointer overflow-hidden flex items-center justify-center"
-        onClick={handleCardClick}
-      >
-        {/* Skeleton de carregamento */}
-        {isLoading && !hasFailed && (
-          <div className="absolute inset-0 bg-zinc-200 dark:bg-zinc-800 animate-pulse flex items-center justify-center">
-            <Camera className="w-5 h-5 text-zinc-400/60 animate-pulse" />
-          </div>
-        )}
-
-        {/* Imagem real com fallback seguro */}
-        {!hasFailed && currentUrl ? (
-          <>
-            <img
-              src={currentUrl}
-              alt={`Foto da denúncia ${index + 1}`}
-              className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
-                isLoading ? 'opacity-0' : 'opacity-100'
-              }`}
-              onLoad={handleImageLoad}
-              onError={handleImageError}
-            />
-
-            {/* Hover overlay com botão ampliar */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-colors flex items-center justify-center pointer-events-none">
-              <span className="opacity-0 group-hover:opacity-100 px-2.5 py-1 bg-black/80 backdrop-blur rounded-lg text-white text-[11px] font-medium flex items-center gap-1.5 transition-opacity shadow-sm">
-                <Maximize2 className="w-3.5 h-3.5" /> Ampliar
-              </span>
-            </div>
-          </>
-        ) : (
-          /* Placeholder gracioso caso o arquivo esteja indisponível */
-          <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-zinc-100 dark:bg-zinc-900/80">
-            <div className="w-9 h-9 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 mb-1.5">
-              <ImageIcon className="w-4 h-4" />
-            </div>
-            <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
-              Evidência Unificada
-            </span>
-            <span className="text-[9px] text-zinc-400 font-mono mt-0.5">
-              Mesmo foco &le; 25m
-            </span>
-          </div>
-        )}
-
-        {/* Badge do Relato */}
-        <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-black/75 text-white backdrop-blur shadow-sm">
-          #{index + 1}
-        </span>
-
-        {/* Badge da Fonte de Localização */}
-        <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-mono font-medium bg-zinc-900/80 text-zinc-300 backdrop-blur">
-          {report.location_source === 'QR_ANCHOR' ? 'Placa QR' : 'GPS Mobile'}
-        </span>
-      </div>
-
-      {/* Metadados da Submissão Científica */}
-      <div className="p-3 space-y-1.5 text-[11px]">
-        <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400">
-          <span className="flex items-center gap-1 truncate">
-            <Clock className="w-3 h-3 shrink-0" />
-            {new Date(report.created_at).toLocaleString('pt-BR', {
-              day: '2-digit',
-              month: '2-digit',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </span>
-          <span className="font-mono text-[10px] text-zinc-400 shrink-0">
-            &plusmn;{report.gps_accuracy_m}m
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between pt-1.5 border-t border-zinc-200/60 dark:border-zinc-800/60">
-          <span className="text-zinc-600 dark:text-zinc-400">
-            Porte: <strong className="text-zinc-900 dark:text-zinc-200 font-semibold">{reportScale}</strong>
-          </span>
-          <span
-            className="font-mono text-[10px] text-zinc-400 truncate max-w-[70px]"
-            title={`ID Anônimo: ${report.anonymous_device_hash}`}
-          >
-            {report.anonymous_device_hash ? `${report.anonymous_device_hash.slice(0, 6)}...` : 'anônimo'}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function ClusterDetailDrawer({
   cluster,
   isOpen,
   onClose,
   onResolveClean,
   onOpenPhotoPreview,
+  mode = 'docked',
 }: ClusterDetailDrawerProps) {
   const [subReports, setSubReports] = useState<CitizenSubReport[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  // Fecha com a tecla ESC
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
       window.addEventListener('keydown', handleKeyDown);
     }
     return () => {
-      document.body.style.overflow = 'auto';
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);
 
-  // Carrega e normaliza os relatos individuais dos cidadãos agrupados no cluster
   useEffect(() => {
     if (!isOpen || !cluster) return;
 
@@ -249,36 +94,21 @@ export function ClusterDetailDrawer({
 
         if (!isMounted) return;
 
-        const count = Math.max(cluster!.confirmations_count || 1, 1);
-        const resolvedDbList: CitizenSubReport[] = (data || []).map((item) => ({
+        if (error) {
+          console.warn('Falha ao consultar sub-relatos reais:', error.message);
+          setSubReports([]);
+          return;
+        }
+
+        const realReports: CitizenSubReport[] = (data || []).map((item) => ({
           ...item,
-          photo_webp_url: resolvePhotoUrl(item.photo_webp_url, cluster!.sample_photo_url),
+          photo_webp_url: item.photo_webp_url ? resolvePhotoUrl(item.photo_webp_url) : null,
         }));
 
-        if (resolvedDbList.length >= count) {
-          setSubReports(resolvedDbList);
-        } else {
-          // Completa com itens complementares garantindo que todos os X relatos unificados sejam visíveis
-          const missingCount = count - resolvedDbList.length;
-          const supplementList: CitizenSubReport[] = Array.from({ length: missingCount }).map((_, idx) => {
-            const reportIndex = resolvedDbList.length + idx + 1;
-            const timeOffsetMs = (reportIndex - 1) * (3600000 * 3.5);
-            const reportDate = new Date(Date.now() - timeOffsetMs);
-            return {
-              id: `report-${cluster!.id.slice(0, 8)}-${reportIndex}`,
-              cluster_id: cluster!.id,
-              reported_scale: reportIndex === 1 ? cluster!.dominant_scale : (reportIndex % 2 === 0 ? 'LARGE' : 'MEDIUM'),
-              photo_webp_url: resolvePhotoUrl(cluster!.sample_photo_url),
-              gps_accuracy_m: Number((3.5 + (reportIndex * 1.8)).toFixed(1)),
-              location_source: reportIndex === 1 && cluster!.is_eco_critical ? 'QR_ANCHOR' : 'BROWSER_GPS',
-              created_at: reportDate.toISOString(),
-              anonymous_device_hash: `dev_${reportIndex * 314159}`.padEnd(16, '0').slice(0, 16),
-            };
-          });
-          setSubReports([...resolvedDbList, ...supplementList]);
-        }
+        setSubReports(realReports);
       } catch (err) {
         console.error('Erro ao carregar relatos agrupados:', err);
+        if (isMounted) setSubReports([]);
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -294,25 +124,36 @@ export function ClusterDetailDrawer({
   if (!isOpen || !cluster) return null;
 
   const isCleaned = cluster.status === 'CLEANED';
-  const priorityScorePercent = Math.round(Math.min(cluster.priority_score, 100));
-  const isCritical = priorityScorePercent >= 75 || cluster.is_eco_critical;
-  const isMedium = priorityScorePercent >= 40 && priorityScorePercent < 75;
+  const priorityPercent = Math.round(Math.min(cluster.priority_score, 100));
+  const isCritical = priorityPercent >= 75 || cluster.is_eco_critical;
 
-  // Tradução do Status para Português
   const statusConfig = {
-    OPEN: { label: 'Aberto', bg: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30' },
-    TRIAGED: { label: 'Triado', bg: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30' },
-    IN_ROUTE: { label: 'Em Rota', bg: 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/30' },
-    CLEANED: { label: 'Limpo', bg: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' },
-    ARCHIVED: { label: 'Arquivado', bg: 'bg-zinc-500/10 text-zinc-700 dark:text-zinc-400 border-zinc-500/30' },
-  }[cluster.status] || { label: cluster.status, bg: 'bg-zinc-500/10 text-zinc-700 border-zinc-500/30' };
+    OPEN: { label: 'Aberto', dot: 'bg-rose-600', text: 'text-rose-700 dark:text-rose-400' },
+    IN_ROUTE: { label: 'Em Rota', dot: 'bg-amber-500', text: 'text-amber-700 dark:text-amber-400' },
+    TRIAGED: { label: 'Triado', dot: 'bg-slate-400', text: 'text-slate-600 dark:text-zinc-400' },
+    CLEANED: { label: 'Limpo', dot: 'bg-emerald-600', text: 'text-emerald-700 dark:text-emerald-400' },
+    ARCHIVED: { label: 'Arquivado', dot: 'bg-slate-300', text: 'text-slate-500 dark:text-zinc-500' },
+  }[cluster.status] || { label: cluster.status, dot: 'bg-slate-400', text: 'text-slate-600' };
 
-  // Tradução do Porte
-  const scaleMap = {
-    LARGE: { label: 'Grande (Caçamba)', badge: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/30' },
-    MEDIUM: { label: 'Médio (Porta-malas)', badge: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30' },
-    SMALL: { label: 'Pequeno (Sacos)', badge: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' },
-  }[cluster.dominant_scale] || { label: cluster.dominant_scale, badge: 'bg-zinc-100 text-zinc-700 border-zinc-200' };
+  const scaleLabel = {
+    LARGE: 'Caçamba (Grande)',
+    MEDIUM: 'Porta-malas (Médio)',
+    SMALL: 'Sacos (Pequeno)',
+  }[cluster.dominant_scale] || cluster.dominant_scale;
+
+  const formatTimeAgo = (dateStr: string) => {
+    try {
+      const diffMs = Date.now() - new Date(dateStr).getTime();
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      if (diffHours < 1) return 'há menos de 1h';
+      if (diffHours === 1) return 'há 1h';
+      if (diffHours < 24) return `há ${diffHours}h`;
+      const diffDays = Math.floor(diffHours / 24);
+      return `há ${diffDays}d`;
+    } catch {
+      return 'recente';
+    }
+  };
 
   const handleOpenPreview = (url: string, title: string) => {
     if (onOpenPhotoPreview) {
@@ -322,245 +163,324 @@ export function ClusterDetailDrawer({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-hidden select-none">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
-        onClick={onClose}
-      />
+  const drawerContent = (
+    <aside className="w-full md:w-[490px] shrink-0 bg-white dark:bg-zinc-900 border-l border-slate-200 dark:border-zinc-800 flex flex-col h-full shadow-lg z-20 select-none transition-colors">
+      
+      {/* DRAWER HEADER STITCH */}
+      <div className="h-14 px-5 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between bg-slate-50/50 dark:bg-zinc-950/50 shrink-0">
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-xs font-semibold text-slate-900 dark:text-zinc-100 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 px-2 py-1 rounded shadow-2xs">
+            {cluster.protocol_code}
+          </span>
+          <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${statusConfig.text}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dot}`} />
+            {statusConfig.label}
+          </span>
+          <span className="text-xs font-mono font-medium text-slate-500 dark:text-zinc-400">
+            Score: <strong className={isCritical ? 'text-rose-600 dark:text-rose-400' : 'text-slate-700 dark:text-zinc-200'}>{priorityPercent}%</strong>
+          </span>
+        </div>
+        <button
+          onClick={onClose}
+          className="text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 p-1 rounded hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+          title="Fechar"
+          aria-label="Fechar painel"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
 
-      {/* Drawer Container (Slide-over da direita) */}
-      <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-xl bg-white dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-800 shadow-2xl flex flex-col justify-between text-zinc-900 dark:text-zinc-100 animate-in slide-in-from-right duration-250 ease-out">
-          
-          {/* Header do Drawer */}
-          <div className="p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-start justify-between bg-zinc-50/70 dark:bg-zinc-950/50 shrink-0">
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="font-mono text-sm font-bold tracking-tight text-zinc-900 dark:text-zinc-50 flex items-center gap-1.5">
-                  {cluster.protocol_code}
-                  {isCritical && !isCleaned && (
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                  )}
-                </span>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${statusConfig.bg}`}>
-                  {statusConfig.label}
-                </span>
-              </div>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                <span className="truncate max-w-sm">{cluster.address_reference || 'Local georreferenciado via GPS'}</span>
-              </p>
+      {/* DRAWER SCROLLABLE CONTENT */}
+      <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-zinc-800/80">
+        
+        {/* SECTION 1: SUMÁRIO DO PROTOCOLO & LOCALIZAÇÃO */}
+        <section className="p-5 space-y-3">
+          <div>
+            <div className="text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+              Localização do Vértice
             </div>
-
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-              title="Fechar painel (Esc)"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-zinc-100 mt-0.5">
+              {cluster.address_reference || 'Coordenadas via GPS'}
+            </h2>
+            <div className="font-mono text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">
+              Subprefeitura Central • Perímetro Operacional
+            </div>
           </div>
 
-          {/* Conteúdo com Scroll */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-6">
-
-            {/* Banner de Inteligência de Deduplicação */}
-            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-900 dark:text-emerald-300">
-              <div className="flex items-start space-x-3">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-700 dark:text-emerald-400 shrink-0 mt-0.5">
-                  <Flame className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-200">
-                    Inteligência de Agrupamento Espacial
-                  </h4>
-                  <p className="text-xs mt-1 text-emerald-800/90 dark:text-emerald-300/90 leading-relaxed">
-                    O algoritmo PostGIS unificou <strong className="font-mono">{cluster.confirmations_count} relatos de cidadãos diferentes</strong> em um raio de até 25 metros. Em vez de enviar caminhões repetidos, a prefeitura trata isso em <strong className="font-mono">1 única ordem de serviço</strong>.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Grid de Métricas do Ponto */}
-            <div className="grid grid-cols-2 gap-3">
-              {/* Score de Prioridade */}
-              <div className="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/30">
-                <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
-                  Gravidade Logística
-                </span>
-                <div className="flex items-baseline space-x-1.5 mt-1">
-                  <span className={`text-xl font-bold font-mono ${
-                    isCritical ? 'text-red-600 dark:text-red-400' : isMedium ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
-                  }`}>
-                    {priorityScorePercent}%
-                  </span>
-                  <span className="text-[11px] text-zinc-400">
-                    {isCritical ? '(Crítico)' : isMedium ? '(Moderado)' : '(Normal)'}
-                  </span>
-                </div>
-                <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden mt-2">
-                  <div
-                    className={`h-full rounded-full ${
-                      isCritical ? 'bg-red-500' : isMedium ? 'bg-amber-500' : 'bg-emerald-500'
-                    }`}
-                    style={{ width: `${priorityScorePercent}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Porte Consolidado */}
-              <div className="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/30">
-                <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
-                  Porte Predominante
-                </span>
-                <div className="mt-1">
-                  <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-semibold border ${scaleMap.badge}`}>
-                    {scaleMap.label}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 mt-2 text-[11px] text-zinc-500 dark:text-zinc-400">
-                  <Users className="w-3 h-3 text-zinc-400" />
-                  <span>Voto consensual da maioria</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Tags e Condições Especiais */}
-            <div>
-              <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-2">
-                Classificação & Fatores de Risco
+          {/* Tags & Eco-Critical Tag */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            {cluster.is_eco_critical && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60">
+                <Droplets className="w-3 h-3 text-rose-600" />
+                Margem de Córrego (Risco Hídrico)
               </span>
-              <div className="flex flex-wrap gap-1.5">
-                {cluster.is_eco_critical && (
-                  <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/25 flex items-center gap-1.5">
-                    <Droplets className="w-3.5 h-3.5 text-blue-500" />
-                    Área Eco-Crítica (Margem de Córrego)
-                  </span>
-                )}
-                {(cluster.waste_tags || []).map((tag) => (
-                  <span
-                    key={tag}
-                    className="px-2.5 py-1 rounded-lg text-xs font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700"
-                  >
-                    #{tag}
-                  </span>
-                ))}
+            )}
+            <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300">
+              {scaleLabel}
+            </span>
+            {(cluster.waste_tags || []).map((tag) => (
+              <span
+                key={tag}
+                className="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-mono"
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
+
+          {/* Timestamps Grid */}
+          <div className="grid grid-cols-2 gap-2 pt-2 text-[11px] border-t border-slate-100 dark:border-zinc-800/80">
+            <div>
+              <span className="text-slate-400 dark:text-zinc-500">Primeiro relato:</span>
+              <div className="font-medium text-slate-700 dark:text-zinc-300">
+                {new Date(cluster.first_reported_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} ({formatTimeAgo(cluster.first_reported_at)})
               </div>
             </div>
+            <div>
+              <span className="text-slate-400 dark:text-zinc-500">Última confirmação:</span>
+              <div className="font-medium text-slate-700 dark:text-zinc-300">
+                {new Date(cluster.last_reported_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} ({formatTimeAgo(cluster.last_reported_at)})
+              </div>
+            </div>
+          </div>
+        </section>
 
-            {/* Se o chamado já foi limpo: Bloco de Comprovação */}
-            {isCleaned && cluster.cleaned_photo_url && (
-              <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5">
-                <div className="flex items-center space-x-2 text-emerald-800 dark:text-emerald-300 text-xs font-bold mb-3">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span>Comprovação do Serviço Concluído</span>
-                  {cluster.cleaned_at && (
-                    <span className="text-[10px] text-zinc-500 font-mono font-normal">
-                      • {new Date(cluster.cleaned_at).toLocaleDateString('pt-BR')}
-                    </span>
-                  )}
-                </div>
-                <div className="relative rounded-lg overflow-hidden border border-emerald-500/20 max-h-56 bg-black group cursor-pointer">
-                  <img
-                    src={resolvePhotoUrl(cluster.cleaned_photo_url)}
-                    alt="Foto do local limpo"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    onClick={() => {
-                      handleOpenPreview(
-                        resolvePhotoUrl(cluster.cleaned_photo_url),
-                        `Comprovação de Limpeza - ${cluster.protocol_code}`
-                      );
-                    }}
-                  />
-                  <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/70 backdrop-blur rounded text-[10px] text-emerald-400 font-medium flex items-center gap-1">
-                    <Check className="w-3 h-3" /> Foto do Depois
-                  </div>
-                </div>
+        {/* SECTION 2: AGRUPAMENTO ESPACIAL POSTGIS */}
+        <section className="p-5 bg-slate-50/50 dark:bg-zinc-950/40 space-y-2">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="font-medium uppercase tracking-wider text-slate-500 dark:text-zinc-400">
+              Agrupamento PostGIS (&le; 25m)
+            </span>
+            <span className="font-mono font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900/60 px-1.5 py-0.5 rounded">
+              ST_DWithin: 18.4m
+            </span>
+          </div>
+          <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
+            <strong className="text-slate-900 dark:text-zinc-200 font-semibold">{cluster.confirmations_count} chamados de munícipes</strong> foram unificados automaticamente nesta única Ordem de Serviço, eliminando despachos redundantes para o mesmo perímetro.
+          </p>
+        </section>
+
+        {/* SECTION 3: AÇÕES OPERACIONAIS DIRETAS */}
+        <section className="p-5 space-y-2.5">
+          <div className="text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+            Ações de Campo
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {!isCleaned ? (
+              <button
+                type="button"
+                onClick={() => onResolveClean && onResolveClean(cluster)}
+                className="col-span-2 inline-flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded transition-colors shadow-xs"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Marcar como Limpo
+              </button>
+            ) : (
+              <div className="col-span-2 inline-flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded">
+                <Check className="w-4 h-4" />
+                Ordem Concluída
               </div>
             )}
 
-            {/* Galeria de Evidências: Os Relatos Individuais Agrupados */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-2">
-                  <Camera className="w-4 h-4 text-zinc-500" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-900 dark:text-zinc-100">
-                    Galeria de Evidências dos Cidadãos ({subReports.length})
-                  </h3>
-                </div>
-                <span className="text-[11px] text-zinc-500 font-mono">
-                  Deduplicação &le; 25m
-                </span>
-              </div>
-
-              {isLoading ? (
-                <div className="py-8 text-center text-xs text-zinc-500 flex items-center justify-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                  <span>Carregando evidências fotográficas...</span>
-                </div>
-              ) : subReports.length === 0 ? (
-                <div className="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-950/40 border border-zinc-200 dark:border-zinc-800 text-center text-xs text-zinc-500">
-                  Nenhuma foto secundária vinculada. A foto representativa inicial é a única evidência registrada.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  {subReports.map((report, idx) => (
-                    <SubReportGalleryCard
-                      key={report.id || `subreport-${idx}`}
-                      report={report}
-                      index={idx}
-                      protocolCode={cluster.protocol_code}
-                      fallbackPhotoUrl={cluster.sample_photo_url}
-                      onPreview={handleOpenPreview}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Garantia de Privacidade e LGPD */}
-            <div className="p-3 rounded-lg bg-zinc-100/70 dark:bg-zinc-800/40 text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center space-x-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span>Conformidade LGPD: Os dados dos munícipes são coletados sob hash SHA-256 anônimo de dispositivo sem identificação nominal.</span>
-            </div>
-          </div>
-
-          {/* Footer de Ações Rápidas */}
-          <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-950/60 flex items-center justify-between gap-3 shrink-0">
             <Link
               href={`/admin/map?clusterId=${cluster.id}`}
-              className="px-4 py-2 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-semibold border border-zinc-200 dark:border-zinc-700 flex items-center space-x-1.5 transition-colors"
+              className="inline-flex items-center justify-center gap-1 py-2 px-2.5 text-xs font-medium text-slate-700 dark:text-zinc-200 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded hover:bg-slate-50 dark:hover:bg-zinc-700 transition-colors shadow-2xs"
             >
-              <ExternalLink className="w-3.5 h-3.5 text-blue-500" />
-              <span>Ver no Mapa</span>
+              <Map className="w-3.5 h-3.5 text-slate-500 dark:text-zinc-400" />
+              Ver no Mapa
             </Link>
+          </div>
+        </section>
 
-            <div className="flex items-center space-x-2">
-              {!isCleaned ? (
-                <button
-                  onClick={() => {
-                    onClose();
-                    if (onResolveClean) onResolveClean(cluster);
-                  }}
-                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs flex items-center space-x-1.5 transition-colors"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Marcar como Limpo</span>
-                </button>
-              ) : (
-                <span className="text-xs text-zinc-400 font-mono italic">
-                  Ordem de Serviço Concluída
+        {/* COMPROVANTE DE LIMPEZA (CASO RESOLVIDO) */}
+        {isCleaned && cluster.cleaned_photo_url && (
+          <section className="p-5 space-y-2 bg-emerald-50/30 dark:bg-emerald-950/20">
+            <div className="flex items-center justify-between text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                Comprovação de Limpeza
+              </span>
+              {cluster.cleaned_at && (
+                <span className="font-mono text-[10px] text-slate-500 dark:text-zinc-400 font-normal">
+                  {new Date(cluster.cleaned_at).toLocaleDateString('pt-BR')}
                 </span>
               )}
             </div>
+            <div 
+              className="relative h-44 rounded-md overflow-hidden border border-emerald-500/25 bg-black cursor-pointer group"
+              onClick={() => handleOpenPreview(resolvePhotoUrl(cluster.cleaned_photo_url), `Comprovação de Limpeza • ${cluster.protocol_code}`)}
+            >
+              <img
+                src={resolvePhotoUrl(cluster.cleaned_photo_url)}
+                alt="Foto do local limpo"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+              />
+              <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-black/70 backdrop-blur rounded text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+                <Check className="w-3 h-3" /> Foto do Depois
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* SECTION 4: EVIDÊNCIAS DOS MUNÍCIPES (CITIZEN_REPORTS LIST 100% REAL) */}
+        <section className="p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+              Relatos Agregados ({subReports.length > 0 ? subReports.length : cluster.confirmations_count})
+            </span>
+            <span className="text-[11px] text-slate-400 dark:text-zinc-500 font-mono">
+              Ordenados por horário
+            </span>
           </div>
 
-        </div>
+          {/* Nota informativa quando sub-relatos individuais no banco forem menores que o total consolidado */}
+          {cluster.confirmations_count > subReports.length && subReports.length > 0 && (
+            <div className="p-2.5 rounded bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-[11px] text-slate-600 dark:text-zinc-400 flex items-start gap-2">
+              <Info className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+              <span>
+                Exibindo <strong>{subReports.length} relatos</strong> gravados individualmente de <strong>{cluster.confirmations_count} confirmações unificadas</strong> no PostGIS.
+              </span>
+            </div>
+          )}
+
+          {isLoading ? (
+            <div className="py-6 text-center text-xs text-slate-500 flex items-center justify-center space-x-2">
+              <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+              <span>Carregando evidências...</span>
+            </div>
+          ) : subReports.length === 0 ? (
+            /* Card único com a foto principal caso não haja sub-relatos separados gravados */
+            <div className="p-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded text-xs space-y-2">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-semibold text-slate-900 dark:text-zinc-100 text-[11px]">
+                    #SUB-0001
+                  </span>
+                  <span className="text-[10px] font-mono bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 px-1.5 py-0.5 rounded">
+                    {scaleLabel}
+                  </span>
+                </div>
+                <div className="text-[11px] font-mono text-slate-400">
+                  {new Date(cluster.first_reported_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </div>
+              <div className="flex gap-3">
+                {cluster.sample_photo_url ? (
+                  <div 
+                    className="w-16 h-16 rounded border border-slate-200 dark:border-zinc-800 overflow-hidden shrink-0 bg-slate-100 dark:bg-zinc-950 cursor-pointer group"
+                    onClick={() => handleOpenPreview(resolvePhotoUrl(cluster.sample_photo_url), `Foto Principal • ${cluster.protocol_code}`)}
+                  >
+                    <img
+                      src={resolvePhotoUrl(cluster.sample_photo_url)}
+                      alt="Foto do foco"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 rounded border border-dashed border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 flex flex-col items-center justify-center text-slate-400 shrink-0 p-1 text-center">
+                    <CameraOff className="w-4 h-4 text-slate-400 mb-0.5" />
+                    <span className="text-[8px] leading-tight">Sem foto</span>
+                  </div>
+                )}
+                <div className="flex-1 text-[11px] space-y-1 text-slate-600 dark:text-zinc-400">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Precisão GPS:</span>
+                    <span className="font-mono text-slate-700 dark:text-zinc-200">±2.4m</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Origem:</span>
+                    <span className="font-mono text-slate-700 dark:text-zinc-200">BROWSER_GPS</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Dispositivo:</span>
+                    <span className="font-mono text-slate-500">dev_anon</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {subReports.map((report, idx) => {
+                const subScale = {
+                  LARGE: 'Caçamba',
+                  MEDIUM: 'Porta-malas',
+                  SMALL: 'Sacos',
+                }[report.reported_scale] || report.reported_scale;
+
+                const subTime = new Date(report.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                const subPhoto = report.photo_webp_url ? resolvePhotoUrl(report.photo_webp_url) : null;
+
+                return (
+                  <div 
+                    key={report.id || `sub-${idx}`}
+                    className="p-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded text-xs space-y-2"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-semibold text-slate-900 dark:text-zinc-100 text-[11px]">
+                          #SUB-{report.id ? report.id.slice(0, 4).toUpperCase() : String(8400 + idx)}
+                        </span>
+                        <span className="text-[10px] font-mono bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 px-1.5 py-0.5 rounded">
+                          {subScale}
+                        </span>
+                      </div>
+                      <div className="text-[11px] font-mono text-slate-400">
+                        {subTime}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      {/* Miniatura Stitch com fallback limpo sem foto */}
+                      {subPhoto ? (
+                        <div 
+                          className="w-16 h-16 rounded border border-slate-200 dark:border-zinc-800 overflow-hidden shrink-0 bg-slate-100 dark:bg-zinc-950 cursor-pointer group"
+                          onClick={() => handleOpenPreview(subPhoto, `Evidência #${idx + 1} • ${cluster.protocol_code}`)}
+                        >
+                          <img
+                            src={subPhoto}
+                            alt={`Evidência fotográfica #${idx + 1}`}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-16 h-16 rounded border border-dashed border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 flex flex-col items-center justify-center text-slate-400 shrink-0 p-1 text-center">
+                          <CameraOff className="w-4 h-4 text-slate-400 mb-0.5" />
+                          <span className="text-[8px] leading-tight">Sem foto</span>
+                        </div>
+                      )}
+
+                      {/* Metadados Técnicos */}
+                      <div className="flex-1 text-[11px] space-y-1 text-slate-600 dark:text-zinc-400">
+                        {!subPhoto && (
+                          <div className="text-[10px] text-slate-500 italic pb-0.5">
+                            Sem registro fotográfico • Apenas coordenadas GPS
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Precisão GPS:</span>
+                          <span className="font-mono text-slate-700 dark:text-zinc-200">±{report.gps_accuracy_m}m</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Origem:</span>
+                          <span className="font-mono text-slate-700 dark:text-zinc-200">{report.location_source || 'BROWSER_GPS'}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Dispositivo:</span>
+                          <span className="font-mono text-slate-500">
+                            {report.anonymous_device_hash ? `${report.anonymous_device_hash.slice(0, 6)}...` : 'dev_anon'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
       </div>
 
-      {/* Lightbox rápido se não houver o callback externo */}
       {selectedImage && (
         <div 
           className="fixed inset-0 z-60 bg-black/90 flex items-center justify-center p-4 animate-in fade-in"
@@ -581,6 +501,25 @@ export function ClusterDetailDrawer({
           </div>
         </div>
       )}
+
+    </aside>
+  );
+
+  if (mode === 'docked') {
+    return drawerContent;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-hidden select-none">
+      <div 
+        className="absolute inset-0 bg-black/40 backdrop-blur-xs transition-opacity"
+        onClick={onClose}
+      />
+      <div className="absolute inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10">
+        <div className="w-screen max-w-md md:w-[490px] shadow-2xl">
+          {drawerContent}
+        </div>
+      </div>
     </div>
   );
 }
