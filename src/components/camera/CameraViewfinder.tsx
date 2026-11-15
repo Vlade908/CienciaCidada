@@ -21,6 +21,7 @@ import {
   useEdgeImageProcessor,
   type EdgeProcessedPhoto,
 } from "@/hooks/useEdgeImageProcessor";
+import { useCameraZoom } from "@/hooks/useCameraZoom";
 
 export interface CameraViewfinderProps {
   gpsState: GpsState;
@@ -53,15 +54,32 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
   const [torchActive, setTorchActive] = useState(false);
   const [shutterFlash, setShutterFlash] = useState(false);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
+  const [activeVideoTrack, setActiveVideoTrack] = useState<MediaStreamTrack | null>(null);
 
   const { processCaptureBlob, isProcessing } = useEdgeImageProcessor();
+
+  const {
+    zoom,
+    isHardwareZoom,
+    isPinching,
+    setZoomLevel,
+    resetZoom,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+  } = useCameraZoom({
+    videoTrack: activeVideoTrack,
+    maxDigitalZoom: 4,
+  });
 
   const stopStream = useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
-  }, []);
+    setActiveVideoTrack(null);
+    resetZoom();
+  }, [resetZoom]);
 
   const startCamera = useCallback(async () => {
     setCameraError(null);
@@ -97,6 +115,8 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
       }
 
       const [videoTrack] = stream.getVideoTracks();
+      setActiveVideoTrack(videoTrack ?? null);
+
       if (videoTrack && "getCapabilities" in videoTrack) {
         const capabilities =
           videoTrack.getCapabilities() as MediaTrackCapabilities & {
@@ -163,7 +183,27 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
     const ctx = captureCanvas.getContext("2d");
     if (!ctx) return;
 
-    ctx.drawImage(videoEl, 0, 0, captureCanvas.width, captureCanvas.height);
+    // Se o hardware suporta zoom, o sensor já aplicou o zoom óptico no stream original.
+    // Se for zoom digital (> 1.05), realizamos o recorte proporcional centralizado correspondente à prévia exibida:
+    if (isHardwareZoom || zoom <= 1.05) {
+      ctx.drawImage(videoEl, 0, 0, captureCanvas.width, captureCanvas.height);
+    } else {
+      const cropWidth = videoEl.videoWidth / zoom;
+      const cropHeight = videoEl.videoHeight / zoom;
+      const cropX = (videoEl.videoWidth - cropWidth) / 2;
+      const cropY = (videoEl.videoHeight - cropHeight) / 2;
+      ctx.drawImage(
+        videoEl,
+        cropX,
+        cropY,
+        cropWidth,
+        cropHeight,
+        0,
+        0,
+        captureCanvas.width,
+        captureCanvas.height
+      );
+    }
 
     captureCanvas.toBlob(
       async (rawBlob) => {
@@ -178,7 +218,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
       "image/jpeg",
       0.90
     );
-  }, [cameraReady, isProcessing, onPhotoProcessed, processCaptureBlob]);
+  }, [cameraReady, isProcessing, onPhotoProcessed, processCaptureBlob, isHardwareZoom, zoom]);
 
   const handleNativeFileChange = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -204,7 +244,11 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
   return (
     <section
       aria-label="Visor da câmera para registro de descarte irregular"
-      className="relative flex h-dvh w-full flex-col justify-between overflow-hidden bg-black text-white select-none"
+      className="relative flex h-dvh w-full flex-col justify-between overflow-hidden bg-black text-white select-none touch-none"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
     >
       <input
         ref={fileInputRef}
@@ -216,14 +260,21 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
         aria-hidden="true"
       />
 
-      {/* VÍDEO FULL-SCREEN */}
-      <video
-        ref={videoRef}
-        playsInline
-        muted
-        autoPlay
-        className="absolute inset-0 size-full object-cover z-0"
-      />
+      {/* VÍDEO FULL-SCREEN COM RECIPIENTE DE OVERFLOW OCULTO E PRÉVIA DE ZOOM */}
+      <div className="absolute inset-0 size-full overflow-hidden flex items-center justify-center z-0">
+        <video
+          ref={videoRef}
+          playsInline
+          muted
+          autoPlay
+          style={{
+            transform: isHardwareZoom ? "scale(1)" : `scale(${zoom})`,
+            transformOrigin: "center center",
+            transition: isPinching ? "none" : "transform 150ms cubic-bezier(0, 0, 0.2, 1)",
+          }}
+          className="size-full object-cover"
+        />
+      </div>
 
       {/* OVERLAYS CINEMATOGRÁFICOS STITCH */}
       <div 
@@ -341,9 +392,52 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
         )}
       </div>
 
-      {/* BOTTOM HUD: GALERIA, SHUTTER IPHONE E FLIP STITCH */}
-      <footer className="relative z-30 pb-[max(1.5rem,env(safe-area-inset-bottom))] px-4 flex flex-col items-center gap-3.5 mb-2">
+      {/* BOTTOM HUD: CONTROLES DE ZOOM NA THUMB ZONE, GALERIA, SHUTTER IPHONE E FLIP STITCH */}
+      <footer className="relative z-30 pb-[max(1.5rem,env(safe-area-inset-bottom))] px-4 flex flex-col items-center gap-3 mb-2">
         
+        {/* PÍLULAS DE ZOOM TÁTIL NA THUMB ZONE (LEI DE FITTS / NEVER GESTURE-ONLY) */}
+        <div 
+          className="flex items-center gap-1.5 bg-black/60 backdrop-blur-xl border border-white/15 p-1 rounded-full shadow-lg"
+          role="toolbar"
+          aria-label="Controles de zoom da câmera"
+        >
+          {[1, 2, 3].map((level) => {
+            const isActive = Math.abs(zoom - level) < 0.15;
+            return (
+              <button
+                key={level}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+                    navigator.vibrate(20);
+                  }
+                  setZoomLevel(level);
+                }}
+                disabled={isProcessing}
+                className={`min-w-10 h-8 px-2.5 rounded-full text-xs font-semibold transition-all flex items-center justify-center ${
+                  isActive
+                    ? "bg-emerald-500 text-zinc-950 shadow-md font-bold scale-105"
+                    : "text-white/80 hover:text-white hover:bg-white/10 active:scale-95"
+                }`}
+                aria-label={`Ajustar zoom para ${level}x`}
+              >
+                {level}x
+              </button>
+            );
+          })}
+
+          {/* Indicador de zoom dinâmico intermediário quando ajustado via gesto de pinça */}
+          {Math.abs(zoom - 1) >= 0.15 &&
+            Math.abs(zoom - 2) >= 0.15 &&
+            Math.abs(zoom - 3) >= 0.15 && (
+              <span className="min-w-10 h-8 px-2 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold flex items-center justify-center animate-pulse">
+                {zoom.toFixed(1)}x
+              </span>
+            )}
+        </div>
+
         {/* GUIA DE INSTRUÇÃO DISCRETO */}
         <div className="rounded-full border border-white/15 bg-black/60 px-4 py-1.5 backdrop-blur-md shadow-md">
           <p className="text-[11px] font-medium text-white/90">
