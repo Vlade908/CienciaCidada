@@ -38,15 +38,34 @@ export const useCameraZoom = ({
   const [isHardwareZoom, setIsHardwareZoom] = useState(false);
   const [isPinching, setIsPinching] = useState(false);
 
+  // Refs mutáveis para estabilidade referencial absoluta dos callbacks
+  const zoomRef = useRef(1);
+  const minZoomRef = useRef(1);
+  const maxZoomRef = useRef(maxDigitalZoom);
+  const isHardwareZoomRef = useRef(false);
+  const videoTrackRef = useRef<MediaStreamTrack | null>(videoTrack);
+
   // Refs para controle do gesto de pinça
   const initialTouchDistanceRef = useRef<number | null>(null);
   const initialTouchZoomRef = useRef<number>(1);
   const isApplyingHardwareZoomRef = useRef(false);
   const pendingHardwareZoomRef = useRef<number | null>(null);
 
-  // Aplica zoom no hardware com controle de concorrência
+  // Sincroniza refs quando valores mudam
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
+
+  useEffect(() => {
+    videoTrackRef.current = videoTrack;
+  }, [videoTrack]);
+
+  // Aplica zoom no hardware com controle de concorrência e leitura via ref (estável sem deps mutáveis)
   const applyHardwareConstraint = useCallback(
-    async (track: MediaStreamTrack, targetZoom: number) => {
+    async (targetZoom: number) => {
+      const track = videoTrackRef.current;
+      if (!track) return;
+
       if (isApplyingHardwareZoomRef.current) {
         pendingHardwareZoomRef.current = targetZoom;
         return;
@@ -67,7 +86,7 @@ export const useCameraZoom = ({
         ) {
           const next = pendingHardwareZoomRef.current;
           pendingHardwareZoomRef.current = null;
-          applyHardwareConstraint(track, next);
+          applyHardwareConstraint(next);
         }
       }
     },
@@ -78,11 +97,17 @@ export const useCameraZoom = ({
   useEffect(() => {
     if (!videoTrack) {
       setZoom(1);
+      zoomRef.current = 1;
       setIsHardwareZoom(false);
+      isHardwareZoomRef.current = false;
       setMinZoom(1);
+      minZoomRef.current = 1;
       setMaxZoom(maxDigitalZoom);
+      maxZoomRef.current = maxDigitalZoom;
       return;
     }
+
+    videoTrackRef.current = videoTrack;
 
     if ("getCapabilities" in videoTrack) {
       try {
@@ -94,12 +119,16 @@ export const useCameraZoom = ({
           typeof capabilities.zoom.max === "number"
         ) {
           const min = Math.max(1, capabilities.zoom.min);
-          const max = Math.min(5, capabilities.zoom.max); // Limite de 5x para manter nitidez
+          const max = Math.min(5, capabilities.zoom.max); // Limite de 5x para nitidez
           setIsHardwareZoom(true);
+          isHardwareZoomRef.current = true;
           setMinZoom(min);
+          minZoomRef.current = min;
           setMaxZoom(max);
+          maxZoomRef.current = max;
           setZoom(min);
-          applyHardwareConstraint(videoTrack, min);
+          zoomRef.current = min;
+          applyHardwareConstraint(min);
           return;
         }
       } catch {
@@ -109,34 +138,42 @@ export const useCameraZoom = ({
 
     // Fallback digital (ex: iOS / Safari)
     setIsHardwareZoom(false);
+    isHardwareZoomRef.current = false;
     setMinZoom(1);
+    minZoomRef.current = 1;
     setMaxZoom(maxDigitalZoom);
+    maxZoomRef.current = maxDigitalZoom;
     setZoom(1);
+    zoomRef.current = 1;
   }, [videoTrack, maxDigitalZoom, applyHardwareConstraint]);
 
-  // Função central para alterar o zoom
+  // Função estável para alterar o zoom
   const setZoomLevel = useCallback(
     (targetZoom: number) => {
-      const clamped = Math.max(minZoom, Math.min(maxZoom, targetZoom));
+      const min = minZoomRef.current;
+      const max = maxZoomRef.current;
+      const clamped = Math.max(min, Math.min(max, targetZoom));
       const rounded = Math.round(clamped * 10) / 10;
       setZoom(rounded);
+      zoomRef.current = rounded;
 
-      if (isHardwareZoom && videoTrack) {
-        applyHardwareConstraint(videoTrack, rounded);
+      if (isHardwareZoomRef.current) {
+        applyHardwareConstraint(rounded);
       }
     },
-    [minZoom, maxZoom, isHardwareZoom, videoTrack, applyHardwareConstraint]
+    [applyHardwareConstraint]
   );
 
-  // Reseta o zoom para 1x
+  // Reseta o zoom para 1x de forma referencialmente estável
   const resetZoom = useCallback(() => {
     setZoom(1);
+    zoomRef.current = 1;
     initialTouchDistanceRef.current = null;
     initialTouchZoomRef.current = 1;
-    if (isHardwareZoom && videoTrack) {
-      applyHardwareConstraint(videoTrack, 1);
+    if (isHardwareZoomRef.current) {
+      applyHardwareConstraint(1);
     }
-  }, [isHardwareZoom, videoTrack, applyHardwareConstraint]);
+  }, [applyHardwareConstraint]);
 
   // Auxiliar para cálculo de distância Euclidiana entre dois dedos
   const getPinchDistance = (touches: React.TouchList): number => {
@@ -147,22 +184,18 @@ export const useCameraZoom = ({
     return Math.sqrt(dx * dx + dy * dy);
   };
 
-  const handleTouchStart = useCallback(
-    (e: React.TouchEvent) => {
-      if (e.touches.length === 2) {
-        const dist = getPinchDistance(e.touches);
-        initialTouchDistanceRef.current = dist;
-        initialTouchZoomRef.current = zoom;
-        setIsPinching(true);
-      }
-    },
-    [zoom]
-  );
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dist = getPinchDistance(e.touches);
+      initialTouchDistanceRef.current = dist;
+      initialTouchZoomRef.current = zoomRef.current;
+      setIsPinching(true);
+    }
+  }, []);
 
   const handleTouchMove = useCallback(
     (e: React.TouchEvent) => {
       if (e.touches.length === 2 && initialTouchDistanceRef.current !== null) {
-        // Previne comportamento padrão de zoom da página/viewport do navegador
         if (e.cancelable) {
           e.preventDefault();
         }
@@ -171,27 +204,27 @@ export const useCameraZoom = ({
         const scaleFactor = currentDist / initialTouchDistanceRef.current;
         const newZoom = initialTouchZoomRef.current * scaleFactor;
 
-        const clamped = Math.max(minZoom, Math.min(maxZoom, newZoom));
+        const min = minZoomRef.current;
+        const max = maxZoomRef.current;
+        const clamped = Math.max(min, Math.min(max, newZoom));
         const rounded = Math.round(clamped * 10) / 10;
         setZoom(rounded);
+        zoomRef.current = rounded;
 
-        if (isHardwareZoom && videoTrack) {
-          applyHardwareConstraint(videoTrack, rounded);
+        if (isHardwareZoomRef.current) {
+          applyHardwareConstraint(rounded);
         }
       }
     },
-    [minZoom, maxZoom, isHardwareZoom, videoTrack, applyHardwareConstraint]
+    [applyHardwareConstraint]
   );
 
-  const handleTouchEnd = useCallback(
-    (e: React.TouchEvent) => {
-      if (e.touches.length < 2) {
-        initialTouchDistanceRef.current = null;
-        setIsPinching(false);
-      }
-    },
-    []
-  );
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length < 2) {
+      initialTouchDistanceRef.current = null;
+      setIsPinching(false);
+    }
+  }, []);
 
   return {
     zoom,

@@ -72,18 +72,32 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
     maxDigitalZoom: 4,
   });
 
+  const [retryCameraCounter, setRetryCameraCounter] = useState(0);
+
+  const retryCamera = useCallback(() => {
+    setRetryCameraCounter((prev) => prev + 1);
+  }, []);
+
   const stopStream = useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
     setActiveVideoTrack(null);
-    resetZoom();
-  }, [resetZoom]);
+  }, []);
 
-  const startCamera = useCallback(async () => {
+  // Ciclo de vida robusto do MediaStream: depende ESTRITAMENTE de facingMode e retry manual
+  useEffect(() => {
+    let isMounted = true;
     setCameraError(null);
-    stopStream();
+
+    // Encerra stream anterior caso exista
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    setActiveVideoTrack(null);
+    resetZoom();
 
     if (
       typeof navigator === "undefined" ||
@@ -96,48 +110,61 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
       return;
     }
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+    navigator.mediaDevices
+      .getUserMedia({
         audio: false,
         video: {
           facingMode: { ideal: facingMode },
           width: { ideal: 1920 },
           height: { ideal: 1080 },
         },
+      })
+      .then(async (stream) => {
+        if (!isMounted) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+
+        streamRef.current = stream;
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play().catch(() => {});
+          if (isMounted) {
+            setCameraReady(true);
+          }
+        }
+
+        const [videoTrack] = stream.getVideoTracks();
+        if (isMounted && videoTrack) {
+          setActiveVideoTrack(videoTrack);
+          if ("getCapabilities" in videoTrack) {
+            const capabilities =
+              videoTrack.getCapabilities() as MediaTrackCapabilities & {
+                torch?: boolean;
+              };
+            setTorchSupported(Boolean(capabilities?.torch));
+          }
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setCameraReady(false);
+          setCameraError(
+            "Câmera ao vivo não autorizada. Toque no botão central ou use a galeria."
+          );
+        }
       });
 
-      streamRef.current = stream;
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => {});
-        setCameraReady(true);
-      }
-
-      const [videoTrack] = stream.getVideoTracks();
-      setActiveVideoTrack(videoTrack ?? null);
-
-      if (videoTrack && "getCapabilities" in videoTrack) {
-        const capabilities =
-          videoTrack.getCapabilities() as MediaTrackCapabilities & {
-            torch?: boolean;
-          };
-        setTorchSupported(Boolean(capabilities?.torch));
-      }
-    } catch {
-      setCameraReady(false);
-      setCameraError(
-        "Câmera ao vivo não autorizada. Toque no botão central ou use a galeria."
-      );
-    }
-  }, [stopStream, facingMode]);
-
-  useEffect(() => {
-    startCamera();
     return () => {
-      stopStream();
+      isMounted = false;
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+      setActiveVideoTrack(null);
     };
-  }, [startCamera, stopStream]);
+  }, [facingMode, retryCameraCounter, resetZoom]);
 
   const toggleTorch = useCallback(async () => {
     const [videoTrack] = streamRef.current?.getVideoTracks() ?? [];
@@ -382,7 +409,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
             </p>
             <button
               type="button"
-              onClick={startCamera}
+              onClick={retryCamera}
               className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-white/20 hover:bg-white/30 px-4 py-1.5 text-xs font-semibold text-white transition-colors"
             >
               <RefreshCcw className="size-3.5" />
