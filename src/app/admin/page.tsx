@@ -161,13 +161,6 @@ export default function AdminDashboardPage() {
       .sort((a, b) => b.priority_score - a.priority_score);
   }, [clusters, searchTerm, statusFilter]);
 
-  // Auto-seleciona o primeiro foco em telas desktop quando nenhum estiver selecionado
-  useEffect(() => {
-    if (!selectedDetailCluster && filteredClusters.length > 0) {
-      setSelectedDetailCluster(filteredClusters[0]);
-    }
-  }, [selectedDetailCluster, filteredClusters]);
-
   const activeClusters = clusters.filter((c) => c.status !== 'CLEANED');
   const inRouteCount = activeClusters.filter((c) => c.status === 'IN_ROUTE').length;
   const totalCitizenReports = clusters.reduce((acc, c) => acc + (c.confirmations_count || 1), 0);
@@ -340,7 +333,7 @@ export default function AdminDashboardPage() {
 
         {/* RIGHT PANE: ClusterDetailDrawer (Docked, Clean, High-Craft w-[490px]) */}
         {selectedDetailCluster && (
-          <div className="hidden xl:flex h-full">
+          <div className="hidden xl:flex h-full animate-in slide-in-from-right duration-200">
             <ClusterDetailDrawer
               cluster={selectedDetailCluster}
               isOpen={Boolean(selectedDetailCluster)}
