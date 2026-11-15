@@ -1,8 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Layers } from 'lucide-react';
+import { 
+  Layers, 
+  MoreVertical, 
+  FileText, 
+  Map as MapIcon, 
+  CheckCircle2 
+} from 'lucide-react';
 
 export interface ClusterRecord {
   id: string;
@@ -32,7 +38,28 @@ export function ClusterDataTable({
   clusters,
   selectedClusterId,
   onSelectCluster,
+  onResolveClean,
 }: ClusterDataTableProps) {
+  const [openMenuClusterId, setOpenMenuClusterId] = useState<string | null>(null);
+
+  // Fecha o menu flutuante ao clicar fora ou pressionar ESC
+  useEffect(() => {
+    if (!openMenuClusterId) return;
+
+    const handleClickOutside = () => setOpenMenuClusterId(null);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpenMenuClusterId(null);
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [openMenuClusterId]);
+
   const formatTimeAgo = (dateStr: string) => {
     try {
       const diffMs = Date.now() - new Date(dateStr).getTime();
@@ -58,7 +85,7 @@ export function ClusterDataTable({
             <th className="py-2.5 px-3.5">Agrupamento</th>
             <th className="py-2.5 px-3.5">Prioridade</th>
             <th className="py-2.5 px-3.5">Status</th>
-            <th className="py-2.5 px-3.5 text-right">Ações</th>
+            <th className="py-2.5 px-3.5 text-right w-14">Ações</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/60 font-sans">
@@ -83,6 +110,7 @@ export function ClusterDataTable({
               const isMedium = priorityPercent >= 40 && priorityPercent < 75;
               const isCleaned = cluster.status === 'CLEANED';
               const isSelected = selectedClusterId === cluster.id;
+              const isMenuOpen = openMenuClusterId === cluster.id;
 
               const scaleLabel = {
                 LARGE: 'Caçamba (Grande)',
@@ -188,25 +216,79 @@ export function ClusterDataTable({
                     </span>
                   </td>
 
-                  {/* Célula 7: Ações */}
-                  <td className="py-2.5 px-3.5 text-right whitespace-nowrap font-medium">
+                  {/* Célula 7: Ações com Ícone de 3 Pontinhos e Menu com Ícones */}
+                  <td className="relative py-2.5 px-3.5 text-right whitespace-nowrap">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onSelectCluster(cluster);
+                        setOpenMenuClusterId((prev) => (prev === cluster.id ? null : cluster.id));
                       }}
-                      className="text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 px-1.5 py-0.5 rounded hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+                      className={`p-1 rounded transition-colors inline-flex items-center justify-center ${
+                        isMenuOpen
+                          ? 'bg-slate-200 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100'
+                          : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800'
+                      }`}
+                      title="Opções do chamado"
+                      aria-label={`Opções para o protocolo ${cluster.protocol_code}`}
+                      aria-expanded={isMenuOpen}
                     >
-                      Detalhes
+                      <MoreVertical className="w-4 h-4" />
                     </button>
-                    <Link
-                      href={`/admin/map?clusterId=${cluster.id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 px-1.5 py-0.5 rounded hover:bg-slate-100 dark:hover:bg-zinc-800 ml-1 transition-colors"
-                    >
-                      Mapa
-                    </Link>
+
+                    {/* Menu Popover Flutuante com Ícones */}
+                    {isMenuOpen && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute right-3.5 top-9 w-44 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg shadow-xl py-1 z-30 animate-in fade-in zoom-in-95 duration-100 text-left divide-y divide-slate-100 dark:divide-zinc-800"
+                        role="menu"
+                      >
+                        <div className="py-0.5">
+                          {/* Opção Detalhes */}
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              setOpenMenuClusterId(null);
+                              onSelectCluster(cluster);
+                            }}
+                            className="w-full px-3 py-1.5 text-xs text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-800 flex items-center gap-2 transition-colors font-medium"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                            <span>Ver Detalhes</span>
+                          </button>
+
+                          {/* Opção Mapa */}
+                          <Link
+                            href={`/admin/map?clusterId=${cluster.id}`}
+                            role="menuitem"
+                            onClick={() => setOpenMenuClusterId(null)}
+                            className="w-full px-3 py-1.5 text-xs text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-800 flex items-center gap-2 transition-colors font-medium"
+                          >
+                            <MapIcon className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                            <span>Ver no Mapa</span>
+                          </Link>
+                        </div>
+
+                        {/* Opção Marcar como Limpo (se ainda estiver pendente) */}
+                        {!isCleaned && onResolveClean && (
+                          <div className="py-0.5">
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={() => {
+                                setOpenMenuClusterId(null);
+                                onResolveClean(cluster);
+                              }}
+                              className="w-full px-3 py-1.5 text-xs text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 flex items-center gap-2 transition-colors font-medium"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                              <span>Marcar como Limpo</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </td>
                 </tr>
               );
